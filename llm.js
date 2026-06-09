@@ -76,6 +76,7 @@ function construirSystemPrompt(contexto) {
     "- Mensajes CORTOS, de chat real: 1 a 4 líneas. UNA idea o pregunta por mensaje.",
     "- Natural y humano. Máximo 1-2 emojis. Resalta con *asteriscos*.",
     "- Manda los links como URL normal en texto plano, NUNCA en formato markdown [texto](url).",
+    "- Cuando un mensaje sea largo o tenga varias ideas, separa cada idea con una LÍNEA EN BLANCO: cada bloque separado por una línea en blanco se envía como un mensaje APARTE (se ve más natural). En los guiones largos, conserva sus líneas en blanco tal cual para que salgan en varios mensajes.",
     "",
     "TU META: calificar a la persona y, según su capital, llevarla a (A) AGENDAR una llamada con el equipo, o (B) entrar a tu club Upgrade Project. El programa grande NO se cierra por chat: se cierra en la llamada.",
     "",

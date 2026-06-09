@@ -101,6 +101,17 @@ function normalizar(texto) {
     .trim();
 }
 
+// Divide un texto en varios mensajes para enviarlos por separado (más humano).
+// Corta en las LÍNEAS EN BLANCO (un salto simple se queda en el mismo mensaje).
+// También descarta separadores sueltos como "-" o "—".
+function dividirEnMensajes(texto) {
+  const partes = String(texto || "")
+    .split(/\n[ \t]*\n+/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0 && !/^[-—]+$/.test(p));
+  return partes.length > 0 ? partes : [String(texto || "").trim()];
+}
+
 async function procesarMensaje(mensajeUsuario, sesion) {
   const texto = normalizar(mensajeUsuario);
 
@@ -161,18 +172,19 @@ app.post("/webhook", async (req, res) => {
   }
 
   const twiml = new MessagingResponse();
-  const msg = twiml.message();
   if (typeof respuesta === "string") {
-    msg.body(respuesta);
+    // Un mensaje largo se parte en varios (cada renglón en blanco = nuevo mensaje).
+    dividirEnMensajes(respuesta).forEach((parte) => twiml.message(parte));
   } else {
-    // Respuesta con imágenes: { texto, media: [urls] }
+    // Respuesta con imágenes: { texto, media: [urls] } va en un solo mensaje.
+    const msg = twiml.message();
     if (respuesta.texto) msg.body(respuesta.texto);
     (respuesta.media || []).forEach((url) => msg.media(url));
   }
   res.type("text/xml").send(twiml.toString());
 });
 
-const VERSION = "v6-workflow";
+const VERSION = "v7-mensajes-separados";
 app.get("/", (_req, res) => {
   res.send(`Bot de WhatsApp de E-Master (Brayan Hernández) activo ✅ (${VERSION})`);
 });
