@@ -41,9 +41,22 @@ Maneja objeciones con tus guiones (caro, no tengo dinero, lo voy a pensar, habla
 | `BOOKING_LINK` | Link de **Calendly** (rama ≥ $1.000). Hoy está tu Calendly de prueba; pon el de E-Master cuando quieras. |
 | `CLUB_LINK` | Link del **club en Skool** (rama < $1.000). |
 | `TWILIO_*` | Cuenta + número de WhatsApp de Twilio. |
-| `LEAD_WEBHOOK_URL` | *(opcional)* URL para mandar cada lead a tu hoja/CRM. |
+| `LEAD_WEBHOOK_URL` | *(opcional)* Tabla del **servicio 1:1**: recibe SOLO los que agendan llamada (nombre, teléfono, ocupación, capital). El club NO entra aquí. |
+| `SEGUIMIENTO_WEBHOOK_URL` | *(opcional)* Recibe el **primer contacto** (`sin_agendar`) y la conversión (`agendo`/`club`) de cada persona. Base para re-contactar a quien no agenda. |
+| `SALUDO_AUDIO_URL` | *(opcional)* Audio del saludo. Si lo pones, el saludo se manda como **audio** en vez de texto. Ver `public/LEEME.txt`. |
 
 Si `BOOKING_LINK` / `CLUB_LINK` quedan vacíos, el bot usa los del guion por defecto.
+
+---
+
+## 🔔 Seguimiento / re-contacto a 24h (los que no agendan)
+
+El bot ya **reporta los datos** a `SEGUIMIENTO_WEBHOOK_URL`: cada primer contacto entra como `sin_agendar`, y si agenda/entra al club pasa a `agendo`/`club`. El **envío** del re-contacto se arma por fuera (no en el bot) porque WhatsApp lo exige así:
+
+1. **Plantillas aprobadas por Meta** — los mensajes proactivos (fuera de la ventana de 24h) requieren plantillas aprobadas en Twilio/Meta. Crea las de urgencia (ej. *"tu acceso vence hoy"*).
+2. **Automatización** (Make / Zapier / n8n / Google Apps Script): conecta `SEGUIMIENTO_WEBHOOK_URL` a una hoja. Una vez al día, busca filas `sin_agendar` con más de 24h y manda la plantilla por Twilio; marca la fila como `seguimiento_enviado`.
+
+Los textos de seguimiento/urgencia están en tu guion (sección *UPGRADE URGENCIA*) y se pegan en las plantillas.
 
 ---
 

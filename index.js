@@ -11,17 +11,31 @@
 //
 // El estado de cada conversación se guarda EN MEMORIA por número.
 
+const path = require("path");
 const express = require("express");
 const twilio = require("twilio");
 const guion = require("./guion");
 const resultados = require("./resultados");
+const acciones = require("./acciones");
 const llm = require("./llm");
 
 const app = express();
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
+// Sirve archivos públicos (ej. el audio del saludo) — un archivo en /public
+// queda accesible en https://TU-URL/<archivo>.
+app.use(express.static(path.join(__dirname, "public")));
 
 const { MessagingResponse } = twilio.twiml;
+
+// Audio pregrabado del saludo (el que pide el nombre). Si está vacío, saluda
+// con texto. Puede ser una URL pública o un archivo en /public.
+const SALUDO_AUDIO_URL = process.env.SALUDO_AUDIO_URL || "";
+
+// Respuesta de saludo: audio si está configurado; si no, el texto del guion.
+function saludoResp() {
+  return SALUDO_AUDIO_URL ? { media: [SALUDO_AUDIO_URL] } : guion.SALUDO;
+}
 
 // ───────── Envío de mensajes salientes (Twilio REST) ─────────
 // Se usa para el "saludo diferido": responder unos segundos después.
@@ -112,13 +126,13 @@ function dividirEnMensajes(texto) {
   return partes.length > 0 ? partes : [String(texto || "").trim()];
 }
 
-async function procesarMensaje(mensajeUsuario, sesion) {
+async function procesarMensaje(mensajeUsuario, sesion, telefono = null) {
   const texto = normalizar(mensajeUsuario);
 
-  // 1) Saludo / reinicio → el equipo se presenta (template, instantáneo).
+  // 1) Saludo / reinicio → saludo (audio si está configurado, si no texto).
   if (SALUDOS.includes(texto)) {
     sesion.historial = [];
-    return guion.SALUDO;
+    return saludoResp();
   }
 
   // 2) Pide resultados/pruebas → bloque de testimonios reales.
@@ -126,8 +140,8 @@ async function procesarMensaje(mensajeUsuario, sesion) {
     return resultados.testimonios();
   }
 
-  // 3) Todo lo demás lo lleva el LLM (setter), con E-Master como contexto.
-  const respuestaLLM = await llm.responder(mensajeUsuario, sesion.historial);
+  // 3) Todo lo demás lo lleva el LLM (Brayan), con E-Master como contexto.
+  const respuestaLLM = await llm.responder(mensajeUsuario, sesion.historial, telefono);
   if (respuestaLLM) {
     sesion.historial.push({ role: "user", content: mensajeUsuario });
     sesion.historial.push({ role: "assistant", content: respuestaLLM });
@@ -144,14 +158,26 @@ app.post("/webhook", async (req, res) => {
   limpiarSesiones();
 
   const id = req.body.From || "anon";
+  const telefono = id.replace(/^whatsapp:/, "");
   const entrante = req.body.Body || "";
   const sesion = obtenerSesion(id);
 
-  // Saludo de APERTURA con retraso: si es el primer mensaje de la sesión y es
-  // un saludo, confirmamos a Twilio al instante (sin texto) y enviamos el
-  // saludo unos segundos después, para que se sienta humano.
+  // SEGUIMIENTO: reporta el PRIMER contacto (base para re-contactar a quien no agenda).
+  if (!sesion.contactoReportado) {
+    sesion.contactoReportado = true;
+    acciones.reportarSeguimiento({
+      telefono,
+      evento: "primer_contacto",
+      estado: "sin_agendar",
+      ts: new Date().toISOString(),
+    });
+  }
+
+  // Saludo de APERTURA con retraso (solo para saludo de TEXTO): primer mensaje +
+  // saludo → ack al instante y enviamos el saludo unos segundos después (más humano).
+  // Si hay audio configurado, el saludo va al instante (no se difiere).
   const esSaludo = SALUDOS.includes(normalizar(entrante));
-  if (esSaludo && !sesion.saludado && puedeEnviar() && saludoDiferidoActivo()) {
+  if (esSaludo && !sesion.saludado && puedeEnviar() && saludoDiferidoActivo() && !SALUDO_AUDIO_URL) {
     sesion.saludado = true;
     res.type("text/xml").send(new MessagingResponse().toString()); // ack vacío
     setTimeout(() => {
@@ -165,7 +191,7 @@ app.post("/webhook", async (req, res) => {
 
   let respuesta;
   try {
-    respuesta = await procesarMensaje(entrante, sesion);
+    respuesta = await procesarMensaje(entrante, sesion, telefono);
   } catch (err) {
     console.error("Error procesando mensaje:", err.message);
     respuesta = guion.SALUDO;
@@ -184,7 +210,7 @@ app.post("/webhook", async (req, res) => {
   res.type("text/xml").send(twiml.toString());
 });
 
-const VERSION = "v7-mensajes-separados";
+const VERSION = "v8-tabla-audio-seguimiento";
 app.get("/", (_req, res) => {
   res.send(`Bot de WhatsApp de E-Master (Brayan Hernández) activo ✅ (${VERSION})`);
 });

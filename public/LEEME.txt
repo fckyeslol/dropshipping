@@ -1,0 +1,21 @@
+AUDIO DEL SALUDO
+================
+
+Aquí va el audio pregrabado del saludo (el que pide el nombre).
+
+PASOS:
+1. Deja tu archivo de audio en esta carpeta, por ejemplo:  saludo.ogg
+   (Recomendado formato .ogg/opus para que se vea como NOTA DE VOZ en WhatsApp.
+    También sirve .mp3, pero se ve como archivo de audio, no como nota de voz.)
+
+2. Haz commit + push para que Railway lo publique. Quedará accesible en:
+   https://dropshipping-production-2fb2.up.railway.app/saludo.ogg
+
+3. En Railway → Variables, pon:
+   SALUDO_AUDIO_URL=https://dropshipping-production-2fb2.up.railway.app/saludo.ogg
+
+Listo: cuando alguien salude, el bot mandará ese audio en vez del texto.
+Si dejas SALUDO_AUDIO_URL vacío, el bot saluda con texto (como hasta ahora).
+
+NOTA: el audio debe pedir el nombre (ej. "¡Hey! ¿con quién tengo el gusto?"),
+porque después de oírlo la persona responde su nombre y el bot sigue el flujo.
