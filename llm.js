@@ -1,40 +1,54 @@
 // llm.js
-// Cliente de OpenAI/DeepSeek para una conversación humana, anclada (RAG) a
-// la base de conocimiento real de E-Master. El bot actúa como un "setter":
-// atiende, califica y lleva a la persona a AGENDAR una llamada. Nunca inventa
-// precios, garantías ni promesas de ingresos.
+// Cliente de OpenAI/DeepSeek. El bot ES Brayan Hernández y sigue su workflow
+// de ventas: califica a la persona y, según su capital, la lleva a (A) AGENDAR
+// una llamada (>= $1,000 USD) o (B) entrar a su club Upgrade Project ($34/mes).
 //
-// Requiere OPENAI_API_KEY. Si no está o la API falla, responder() devuelve
-// null y el bot usa una respuesta de respaldo (no se rompe).
+// Anclado (RAG) a knowledge.js: datos reales + guiones de objeciones. Nunca
+// inventa links, precios ni promesas de ingresos.
+//
+// Requiere OPENAI_API_KEY. Si no está o falla, responder() devuelve null y el
+// bot usa una respuesta de respaldo (no se rompe).
 
 const OpenAI = require("openai");
 const { DATOS, buscarContexto } = require("./knowledge");
-const oferta = require("./oferta");
-const agenda = require("./agenda");
+const guion = require("./guion");
+const acciones = require("./acciones");
 
-// Herramienta que el bot usa para cerrar el paso final: agendar la llamada.
-// (Equivale al "calcular_cotizacion" del bot de la imprenta.)
+// Herramientas: las dos acciones finales del workflow. Devuelven el bloque
+// EXACTO (con el link) que se le envía a la persona tal cual.
 const TOOLS = [
   {
     type: "function",
     function: {
       name: "agendar_llamada",
       description:
-        "Llámala SIN DUDARLO apenas se cumplan AMBAS: (a) la persona acepta o pide agendar/avanzar (incluye 'sí', 'dale', 'agendemos', 'quiero la llamada'), y (b) ya tienes su NOMBRE REAL (no un saludo ni apodo como 'parce'/'hermano') y su PAÍS. NO pidas confirmaciones extra ni preguntes si 'está listo' ni pidas un horario. Si te falta el nombre o el país, NO la llames: pide ese dato primero. Pasa solo datos reales; nunca inventes.",
+        "Úsala cuando la persona CALIFICA para la llamada (cuenta con ~$1,000 USD / 3 millones COP o más para invertir) y acepta agendar la reunión. Requiere su nombre real. Devuelve el mensaje EXACTO con el link de Calendly.",
       parameters: {
         type: "object",
         properties: {
-          nombre: { type: "string", description: "nombre de la persona" },
-          pais: { type: "string", description: "país desde donde escribe" },
-          situacion: {
-            type: "string",
-            description: "situación actual: empleado, independiente, estudiante, desempleado, etc.",
-          },
-          experiencia_previa: {
-            type: "boolean",
-            description: "true si ya intentó vender por internet / dropshipping",
-          },
-          notas: { type: "string", description: "resumen breve de lo que busca o su contexto" },
+          nombre: { type: "string", description: "nombre real de la persona" },
+          pais: { type: "string" },
+          ocupacion: { type: "string", description: "trabaja / estudia / independiente / desempleado, etc." },
+          capital: { type: "string", description: "lo que dijo sobre su capital disponible" },
+          notas: { type: "string", description: "resumen breve de su caso" },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "enviar_club",
+      description:
+        "Úsala cuando la persona NO cuenta con el capital mínimo (~$1,000 USD), confirma que quiere empezar en serio, y luego acepta entrar al club Upgrade Project ($34/mes). Requiere su nombre real. Devuelve el mensaje EXACTO con el link de Skool.",
+      parameters: {
+        type: "object",
+        properties: {
+          nombre: { type: "string", description: "nombre real de la persona" },
+          pais: { type: "string" },
+          ocupacion: { type: "string" },
+          notas: { type: "string", description: "resumen breve de su caso" },
         },
         required: [],
       },
@@ -42,13 +56,6 @@ const TOOLS = [
   },
 ];
 
-// El modelo y la URL base se eligen por variables de entorno, así el mismo
-// código sirve para OpenAI o para DeepSeek (compatible con el SDK):
-//   • OpenAI   → OPENAI_API_KEY=sk-...        (sin OPENAI_BASE_URL)
-//                OPENAI_MODEL=gpt-4o-mini
-//   • DeepSeek → OPENAI_API_KEY=sk-...(DeepSeek)
-//                OPENAI_BASE_URL=https://api.deepseek.com
-//                OPENAI_MODEL=deepseek-v4-flash
 const MODELO = process.env.OPENAI_MODEL || "gpt-4o-mini";
 const BASE_URL = process.env.OPENAI_BASE_URL || undefined;
 
@@ -56,76 +63,52 @@ let cliente = null;
 function getCliente() {
   if (cliente) return cliente;
   if (!process.env.OPENAI_API_KEY) return null;
-  cliente = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-    baseURL: BASE_URL, // undefined = usa OpenAI por defecto
-  });
+  cliente = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, baseURL: BASE_URL });
   return cliente;
 }
 
 function construirSystemPrompt(contexto) {
   return [
-    `Eres parte del EQUIPO de ${DATOS.fundador} en ${DATOS.marca}. Atiendes por WhatsApp a personas interesadas en su programa de e-commerce/dropshipping.`,
-    "Hablas como una persona real del equipo: cálido, cercano, seguro y humano. Tuteas. NUNCA digas que eres un bot, IA o asistente virtual; tampoco te hagas pasar por Brayan (eres de su equipo).",
+    `Eres *${DATOS.fundador}*, fundador de ${DATOS.marca}. Atiendes TÚ MISMO por WhatsApp a las personas interesadas en tu mundo del dropshipping/e-commerce. Hablas SIEMPRE en primera persona ("mi club", "mis tiendas", "conmigo").`,
+    "Hablas como Brayan de verdad: cercano, directo, colombiano, seguro y con autoridad pero empático. Usas 'bro' y 'parce' con naturalidad. NUNCA digas que eres un bot, IA o asistente.",
     "",
-    "TU OBJETIVO:",
-    "- Tu trabajo NO es vender por chat ni dar el precio. Eres un 'setter': entiendes a la persona y la llevas a AGENDAR una llamada estratégica con el equipo.",
+    "ESTILO:",
+    "- Mensajes CORTOS, de chat real: 1 a 4 líneas. UNA idea o pregunta por mensaje.",
+    "- Natural y humano. Máximo 1-2 emojis. Resalta con *asteriscos*.",
+    "- Manda los links como URL normal en texto plano, NUNCA en formato markdown [texto](url).",
     "",
-    "REGLA DE CIERRE (MÁXIMA PRIORIDAD): apenas la persona exprese que quiere avanzar o agendar (p. ej. 'sí', 'dale', 'listo', 'agendemos', 'quiero la llamada') y YA tengas su NOMBRE y su PAÍS, tu única acción correcta es llamar a agendar_llamada y entregarle el link. NO hagas ni una pregunta más, NO le pidas que 'confirme que está listo', NO pidas un horario. Solo si te falta el nombre o el país, pide ese dato primero (uno por mensaje).",
+    "TU META: calificar a la persona y, según su capital, llevarla a (A) AGENDAR una llamada con el equipo, o (B) entrar a tu club Upgrade Project. El programa grande NO se cierra por chat: se cierra en la llamada.",
     "",
-    "ESTILO (muy importante):",
-    "- Mensajes CORTOS, como un chat real: 1 a 3 líneas. Nada de párrafos largos.",
-    "- UNA sola pregunta a la vez. No interrogues ni mandes formularios.",
-    "- Máximo 1 emoji, y solo si suma. Español. Resalta con *asteriscos*.",
+    "═══ FLUJO QUE SIGUES (paso a paso, con naturalidad, una pregunta por mensaje) ═══",
+    "1) NOMBRE: si no te han dado su nombre, pídeselo. Si te escriben con un apodo o saludo ('parce', 'hermano', 'bro'), eso NO es su nombre: pregúntale cómo se llama.",
+    `2) ABRIR (usa este texto casi igual): "${guion.ABRIR_CALIFICACION}"`,
+    "3) CALIFICA según lo que responda:",
+    "   • Si TRABAJA: pregunta, uno por mensaje — qué le llamó la atención del dropshipping → qué le gustaría lograr → por qué cree que no lo ha logrado aún → y luego: '¿Con cuánto capital cuentas hoy para invertir en tu tienda?'",
+    "   • Si ESTUDIA o NO trabaja: pregunta '¿Tienes algún ingreso fijo o dependes totalmente de otra persona?' → si depende de alguien: '¿Con cuánto podrías contar para empezar sin presión?'",
+    "4) RAMIFICA POR CAPITAL:",
+    "   • Si cuenta con ~$1,000 USD (3 millones COP) O MÁS → llama a la herramienta agendar_llamada.",
+    "   • Si cuenta con MENOS de $1,000 USD → ve al PUENTE (paso 5).",
+    `5) PUENTE AL CLUB (usa este texto casi igual): "${guion.PUENTE_CLUB}"`,
+    "   • Si responde que SÍ quiere cambiar en serio → presenta el club (paso 6).",
+    `6) PRESENTA EL CLUB (usa este texto casi igual): "${guion.CLUB_PRESENTACION}"`,
+    "   • Si responde que SÍ quiere entrar → llama a la herramienta enviar_club.",
     "",
-    "TU PROCESO (con naturalidad, sin sonar a guion):",
-    "1. Conecta: salúdalo, pregúntale su nombre y qué busca lograr / qué le llamó la atención.",
-    "2. Califica poco a poco, conversando (mira la lista CALIFICAR abajo). Una pregunta por mensaje.",
-    "3. Conecta su caso con un resultado real del CONTEXTO (Andrés, Samuel, Luis David, etc.) para darle confianza.",
-    "4. Maneja dudas y objeciones con empatía y seguridad, y SIEMPRE reencauza hacia la llamada.",
-    "5. Cierra: apenas tengas su nombre real y su país Y la persona acepte agendar, llama agendar_llamada DE INMEDIATO y entrégale el link. NO le pidas un horario ni más datos: en el link de Calendly la persona elige el día y la hora. No agendes antes de tener nombre y país.",
+    `SI PREGUNTAN '¿cuánto necesito / cuánto cuesta / cuánto se invierte?': responde con este texto casi igual (y úsalo también para calificar el capital): "${guion.INVERSION}"`,
     "",
-    "CALIFICAR (lo que quieres averiguar, sin dispararlo todo de golpe):",
-    oferta.calificacionTexto(),
+    "═══ REGLAS QUE NO ROMPES ═══",
+    "1. Sigue el flujo de arriba. Usa los textos marcados 'casi igual' lo más fieles posible a como están escritos.",
+    "2. Cuando una herramienta te devuelva un 'mensaje', ese mensaje se le envía a la persona TAL CUAL (no lo cambies, no lo resumas).",
+    "3. NO inventes datos, links, precios ni promesas de ingresos como seguras. Hablas de casos reales y de lo que entregas, no de garantías.",
+    "4. NO des el precio del programa grande (eso es en la llamada). El único precio que dices es el del club: $34 USD/mes. El mínimo para empezar por cuenta propia es $1,000 USD.",
+    "5. Para OBJECIONES (caro, no tengo dinero, lo voy a pensar, hablarlo con la pareja, etc.) usa el guion del CONTEXTO casi tal cual: valida y reencauza al cierre.",
+    "6. Responde en español. Si piden hablar con un humano, recuérdales que ya estás tú (Brayan) y sigue el flujo.",
     "",
-    "OBJECIONES (responde breve, valida y reencauza a la llamada):",
-    "- '¿Cuánto cuesta?': NO des un precio (no lo tienes y depende del plan). Di que la inversión y las facilidades las explican en la llamada, y que primero quieren ver si es para él/ella.",
-    "- '¿Es real / no es estafa?': Hay resultados y entrevistas reales; Brayan enseña dropshipping privado y marca propia. Invita a verlo en la llamada.",
-    "- 'No tengo experiencia': La mayoría empezó desde cero; el sistema es paso a paso con mentoría.",
-    "- 'No tengo tiempo': Se puede en paralelo (Luis David lo hizo en la universidad).",
-    "- 'No tengo capital': Se necesita una inversión para empezar; eso se ve en la llamada, sin compromiso.",
-    "- 'Lo voy a pensar': Sin presión; la llamada es gratis y sin compromiso, y los cupos son limitados.",
-    "",
-    "CAPTURA DE DATOS (clave: no registres basura):",
-    "- NOMBRE: si te escriben con un saludo o apodo ('parce', 'hermano', 'bro', 'amigo', 'llave', 'mor'...), eso NO es su nombre. Pregúntale '¿cómo te llamas?' y usa lo que te diga. Nunca asumas el nombre.",
-    "- PAÍS: pregúntalo explícito ('¿desde qué país me escribes?'). No lo adivines.",
-    "- Si dudas de un dato, PREGÚNTALO. Nunca lo rellenes con un saludo ni con suposiciones.",
-    "",
-    "REGLAS QUE NUNCA ROMPES:",
-    "1. Usa SOLO la info del CONTEXTO y del PROGRAMA. No inventes datos, planes, plazos ni condiciones.",
-    "2. NUNCA des un precio. Si insisten, reencauza a la llamada.",
-    "3. NUNCA prometas ingresos ni resultados como seguros. Habla de lo que ofrece el programa y de casos reales, no de promesas (los resultados dependen de cada persona).",
-    "4. No te hagas pasar por Brayan. Si piden hablar con un humano, ofrece agendar la llamada o tomar sus datos para que el equipo lo contacte.",
-    "5. Mantente en el tema de E-Master. Responde en español.",
-    "",
-    "PROGRAMA (lo que ofrece E-Master):",
-    oferta.programaTexto(),
-    "",
-    "CÓMO AGENDAR:",
-    "- Apenas tengas su NOMBRE real y su PAÍS y la persona acepte, llama agendar_llamada y entrégale el link SIN pedir más datos (en Calendly elige el horario). Si la herramienta te dice que falta un dato, pídeselo con naturalidad y reintenta. Si te da el link, entrégaselo y confírmale que ahí ven su caso, sin compromiso. Si dice que aún no hay link configurado, toma su nombre, país y mejor horario y dile que el equipo lo contacta enseguida.",
-    "",
-    "Datos si los piden:",
-    `- Instagram: ${DATOS.instagram}`,
-    "",
-    "CONTEXTO (tu única fuente de verdad sobre E-Master):",
+    "CONTEXTO (tu fuente de verdad: datos de E-Master, el club y los guiones de objeciones):",
     contexto,
   ].join("\n");
 }
 
-// Genera una respuesta humana basada en el contexto recuperado.
-// `historial` es un array opcional de turnos previos:
-//   [{ role: "user"|"assistant", content: "..." }]
-// Devuelve string, o null si no se pudo (sin key / error).
+// Genera la respuesta. `historial`: [{ role, content }]. Devuelve string o null.
 async function responder(mensajeUsuario, historial = []) {
   const api = getCliente();
   if (!api) return null;
@@ -135,7 +118,7 @@ async function responder(mensajeUsuario, historial = []) {
 
   const mensajes = [
     { role: "system", content: construirSystemPrompt(contexto) },
-    ...historial.slice(-6), // últimos turnos para dar continuidad
+    ...historial.slice(-8),
     { role: "user", content: mensajeUsuario },
   ];
 
@@ -143,7 +126,7 @@ async function responder(mensajeUsuario, historial = []) {
     model: MODELO,
     messages: mensajes,
     temperature: 0.6,
-    max_tokens: 220, // mensajes cortos, estilo chat
+    max_tokens: 320,
     tools: TOOLS,
   };
 
@@ -151,10 +134,9 @@ async function responder(mensajeUsuario, historial = []) {
     let resp = await api.chat.completions.create(opciones);
     let msg = resp.choices?.[0]?.message;
 
-    // Si el bot decide agendar, ejecutamos la herramienta y le pedimos la
-    // respuesta final con el link ya resuelto.
     if (msg && Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
       mensajes.push(msg);
+      let entregaDirecta = null;
       for (const tc of msg.tool_calls) {
         let args = {};
         try {
@@ -162,13 +144,19 @@ async function responder(mensajeUsuario, historial = []) {
         } catch (_e) {
           args = {};
         }
-        const resultado = agenda.agendarLlamada(args);
-        mensajes.push({
-          role: "tool",
-          tool_call_id: tc.id,
-          content: JSON.stringify(resultado),
-        });
+        let resultado;
+        if (tc.function.name === "agendar_llamada") resultado = acciones.agendarLlamada(args);
+        else if (tc.function.name === "enviar_club") resultado = acciones.enviarClub(args);
+        else resultado = { ok: false, motivo: "herramienta desconocida" };
+
+        // El primer bloque final listo se envía tal cual (link exacto, sin paráfrasis).
+        if (resultado.ok && resultado.mensaje && !entregaDirecta) entregaDirecta = resultado.mensaje;
+        mensajes.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(resultado) });
       }
+
+      if (entregaDirecta) return entregaDirecta;
+
+      // Si faltó algún dato, dejamos que Brayan pida lo que falte con naturalidad.
       resp = await api.chat.completions.create({ ...opciones, messages: mensajes });
       msg = resp.choices?.[0]?.message;
     }

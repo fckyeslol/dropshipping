@@ -1,71 +1,60 @@
-# Bot de WhatsApp · E-Master Project (Brayan Hernández)
+# Bot de WhatsApp · E-Master (habla como Brayan)
 
-Bot que atiende por WhatsApp a los interesados en el programa de Brayan, los **califica** (entiende su caso) y los lleva a **agendar una llamada** con el equipo. Habla como una persona real del equipo —nunca como un bot— con mensajes cortos y tono cercano.
-
-No vende ni da precios por chat: su trabajo es **conectar, generar confianza con los resultados reales, resolver dudas y agendar la llamada**, que es donde se cierra.
+Bot que atiende por WhatsApp **como Brayan Hernández** (primera persona), sigue su workflow de ventas, **califica** a la persona y, según su capital, la lleva a una de **dos** salidas:
 
 ```
-Interesado escribe  →  el equipo saluda  →  conversa y califica
-                    →  conecta su caso con testimonios reales
-                    →  resuelve objeciones  →  AGENDA la llamada
+Entra un interesado → pide nombre → "¿A qué te dedicas?"
+   │
+   ├─ CALIFICA (si trabaja: interés → objetivo → bloqueo → capital)
+   │           (si estudia/no trabaja: ingreso fijo → con cuánto cuenta)
+   │
+   └─ RAMIFICA POR CAPITAL
+        • ≥ $1,000 USD  → AGENDA llamada (Calendly)     ← programa grande, se cierra en la llamada
+        • < $1,000 USD  → CLUB Upgrade Project ($34/mes, Skool)
 ```
+
+Maneja objeciones con tus guiones (caro, no tengo dinero, lo voy a pensar, hablarlo con la pareja, etc.) y siempre reencauza al cierre.
 
 ---
 
 ## 📁 Archivos (qué edita cada uno)
 
-| Archivo            | Para qué sirve |
-|--------------------|----------------|
-| `knowledge.js`     | **La base de conocimiento.** Todo lo que el bot sabe de E-Master (qué es, qué incluye, testimonios, objeciones). El bot SOLO responde con esto; no inventa. |
-| `oferta.js`        | El **saludo**, el resumen del programa y las **preguntas para calificar**. |
-| `resultados.js`    | El bloque de **testimonios/resultados** (y, cuando los tengas, los links de YouTube). |
-| `agenda.js`        | El **link para agendar** la llamada y la captura de leads (logs / tu CRM). |
-| `llm.js`           | El "cerebro": la **personalidad** del setter y las reglas. |
-| `index.js`         | El servidor que recibe los mensajes de Twilio y responde. |
-| `parse_whatsapp.js`| Minador de tus **chats reales** para mejorar las respuestas. |
-| `.env.example`     | Plantilla de variables (Twilio, IA, link de agenda). |
-| `test.js`          | Prueba la lógica sin Twilio. |
+| Archivo         | Para qué sirve |
+|-----------------|----------------|
+| `guion.js`      | **Toda la copy**, casi al pie de la letra de tu workflow: saludo, apertura, /inversión, puente, presentación del club y los bloques con los links. **Aquí editas los textos.** |
+| `knowledge.js`  | Datos reales (Brayan, E-Master, el club, el mínimo de $1.000) **+ los 10 guiones de objeciones** (se traen solos cuando la persona objeta). |
+| `acciones.js`   | Las 2 acciones finales: `agendarLlamada` (Calendly) y `enviarClub` (Skool) + captura de leads (logs / tu CRM). |
+| `llm.js`        | El cerebro: la personalidad de Brayan y el flujo paso a paso. |
+| `index.js`      | El servidor que recibe los mensajes de Twilio y responde. |
+| `parse_whatsapp.js` | Minador de tus chats reales para afinar la copy. |
+| `.env.example`  | Plantilla de variables (Twilio, IA, los 2 links). |
 
-> Para cambiar lo que el bot sabe o cómo habla, editas `knowledge.js`, `oferta.js` y `resultados.js`. Casi nunca necesitas tocar `index.js`.
+> Para cambiar lo que dice el bot, editas **`guion.js`** (copy) y **`knowledge.js`** (datos + objeciones).
 
 ---
 
-## ⚙️ Lo que TIENES que completar (marcadores)
+## ⚙️ Lo que tienes que poner (variables en Railway)
 
-El bot ya funciona, pero hay datos reales que debes poner cuando los tengas:
+| Variable | Qué es |
+|----------|--------|
+| `OPENAI_API_KEY` | Tu key de OpenAI (o DeepSeek). **Obligatoria** para que converse. |
+| `BOOKING_LINK` | Link de **Calendly** (rama ≥ $1.000). Hoy está tu Calendly de prueba; pon el de E-Master cuando quieras. |
+| `CLUB_LINK` | Link del **club en Skool** (rama < $1.000). |
+| `TWILIO_*` | Cuenta + número de WhatsApp de Twilio. |
+| `LEAD_WEBHOOK_URL` | *(opcional)* URL para mandar cada lead a tu hoja/CRM. |
 
-1. **Link de agenda** → variable `BOOKING_LINK` (Calendly, Cal.com, Google Form o un `wa.me` a un asesor). Sin él, el bot toma los datos y dice que el equipo contacta a la persona.
-2. **Precio / planes** → **a propósito NO están**. El bot nunca da precio; deriva a la llamada. (Si algún día quieres que sí los diga, se agregan en `knowledge.js`.)
-3. **Links de testimonios en YouTube** → en `resultados.js`, campo `video` de cada caso.
-4. **Contacto/redes** → en `knowledge.js` (`DATOS`): Instagram ya está; web/email si aplican.
+Si `BOOKING_LINK` / `CLUB_LINK` quedan vacíos, el bot usa los del guion por defecto.
 
 ---
 
-## 🚀 Puesta en marcha (igual que el otro bot)
+## 🚀 Puesta en marcha
 
-### 1. Twilio Sandbox de WhatsApp (gratis, para probar)
-- Crea cuenta en <https://www.twilio.com/try-twilio>.
-- Consola → **Messaging → Try it out → Send a WhatsApp message**.
-- Activa el **Sandbox**: te da un número (ej. `+1 415 523 8886`) y un código `join algo-algo`. Envía ese código desde tu WhatsApp para vincularte.
+1. **Twilio Sandbox** → Messaging → Try it out → Send a WhatsApp message → activa el sandbox y vincula tu número con `join <código>`.
+2. **GitHub + Railway**: sube esta carpeta (menos `.env` y `data/`), conéctala en Railway, agrega las Variables de arriba.
+3. **Webhook de Twilio**: en *Sandbox settings* → "When a message comes in" pon `https://TU-URL.up.railway.app/webhook` (método **POST**).
+4. Escríbele **"Hola"** y sigue la conversación.
 
-### 2. Subir el código a GitHub
-- Crea un repo y sube esta carpeta **menos** `.env` y `data/` (ya están en `.gitignore`).
-
-### 3. Desplegar en Railway ($5/mes, no se "duerme")
-- <https://railway.app> → **New Project → Deploy from GitHub repo**.
-- Railway detecta Node solo (usa `npm install` + `npm start`). No fijes `PORT`.
-- En **Variables**, agrega lo del `.env.example` que vayas a usar (mínimo `OPENAI_API_KEY`; y `TWILIO_*` + `BOOKING_LINK` cuando los tengas).
-- **Settings → Networking → Generate Domain** → te da una URL pública.
-
-### 4. Conectar Twilio con tu servidor
-- En la config del Sandbox, campo **"When a message comes in"** pega:
-  ```
-  https://TU-URL.up.railway.app/webhook
-  ```
-  Método **HTTP POST**. Guarda.
-
-### 5. Probar
-- Escribe **"Hola"** al número del sandbox y sigue la conversación. 🎉
+> Verifica que está vivo abriendo la URL raíz: debe decir *"Bot de WhatsApp de E-Master ... activo ✅ (v6-workflow)"*.
 
 ---
 
@@ -73,47 +62,30 @@ El bot ya funciona, pero hay datos reales que debes poner cuando los tengas:
 
 ```bash
 npm install
-npm test       # verifica la lógica (saludo, resultados, respaldo)
-npm start      # levanta el servidor en http://localhost:3000
+npm test       # lógica básica sin Twilio ni IA
+npm start      # servidor en http://localhost:3000
 ```
 
-Simular un mensaje entrante:
-
-```bash
-curl -X POST http://localhost:3000/webhook --data-urlencode "Body=Hola"
-```
-
-> Sin `OPENAI_API_KEY`, las preguntas libres caen al saludo de respaldo (no se rompe). Con la key, ya responde el setter de verdad.
+Sin `OPENAI_API_KEY`, las preguntas libres caen al saludo de respaldo (no se rompe). Con la key, conversa el flujo completo.
 
 ---
 
 ## 🤖 La IA (OpenAI o DeepSeek)
 
-Las respuestas humanas las da un **LLM anclado** a `knowledge.js` (no inventa). Funciona con **OpenAI** o **DeepSeek** (mismo SDK; DeepSeek es más económico para volumen).
+La conversación la lleva un LLM **anclado** a `knowledge.js` (no inventa). Funciona con **OpenAI** (`OPENAI_MODEL=gpt-4o-mini`) o **DeepSeek** (`OPENAI_BASE_URL=https://api.deepseek.com`, `OPENAI_MODEL=deepseek-v4-flash`, más económico).
 
-- **OpenAI:** `OPENAI_API_KEY=sk-...` y `OPENAI_MODEL=gpt-4o-mini`.
-- **DeepSeek:** `OPENAI_API_KEY=sk-...`, `OPENAI_BASE_URL=https://api.deepseek.com`, `OPENAI_MODEL=deepseek-v4-flash`.
-
-El bot calcula que la persona quiere agendar y usa la herramienta `agendar_llamada` para entregar el link y registrar el lead.
+Los **links salen exactos** porque los entregan las herramientas (`acciones.js`), no la IA. Cada cierre registra el lead con su rama (`llamada` o `club`).
 
 ---
 
-## 👤 Captura de leads
+## 📈 Afinar con tus chats reales
 
-Cada vez que alguien agenda, el lead se guarda en los **logs**. Si pones `LEAD_WEBHOOK_URL` (Google Apps Script, Make, Zapier, n8n o tu CRM), el bot le hace `POST` con los datos para que caigan en una hoja/CRM automáticamente.
-
----
-
-## 📈 Mejorar el bot con tus chats reales
-
-Lo que hace que cierre como tú es entrenar el contenido con **tus conversaciones reales**:
-1. Exporta chats de ventas (ver `data/LEEME.txt`) y déjalos en `data/`.
-2. Corre `node parse_whatsapp.js`.
-3. Revisa `data/salida/interesados_detectados.csv`: ahí están las dudas, objeciones y respuestas que funcionan.
-4. Pega las mejores en `knowledge.js` (como nuevos chunks) y ajusta el tono en `llm.js`.
+1. Exporta chats de ventas (ver `data/LEEME.txt`) → carpeta `data/`.
+2. `node parse_whatsapp.js` → revisa `data/salida/interesados_detectados.csv`.
+3. Pega las mejores respuestas/objeciones en `guion.js` y `knowledge.js`.
 
 ---
 
-## ⚠️ Nota importante (responsable)
+## ⚠️ Nota
 
-El bot **no promete ingresos** ni resultados como seguros: habla de lo que ofrece el programa y de **casos reales**, y aclara que los resultados dependen de cada persona. Esto protege la marca y es lo correcto. Si necesitas un texto legal/condiciones específico, agrégalo en `knowledge.js`.
+El bot habla como Brayan en primera persona y maneja precios/objeciones según tu guion. Mantiene una regla: **no promete ingresos como seguros** (habla de casos reales y de lo que entregas). Ajusta los textos en `guion.js` cuando quieras.

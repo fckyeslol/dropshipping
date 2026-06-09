@@ -1,103 +1,137 @@
 // knowledge.js
 // ───────────────────────────────────────────────────────────────
-//  BASE DE CONOCIMIENTO de E-Master Project (RAG ligero)
+//  BASE DE CONOCIMIENTO de E-Master / Brayan (RAG ligero)
 // ───────────────────────────────────────────────────────────────
-//  Toda la información de abajo viene del material oficial (landing,
-//  Instagram, testimonios). El bot SOLO puede responder con base en
-//  estos textos; NO inventa precios, garantías ni promesas de ingresos.
+//  Datos REALES + guiones de objeciones. El bot SOLO responde con base
+//  en estos textos; el recuperador (buscarContexto) elige los chunks
+//  relevantes a cada mensaje y se los pasa al LLM como contexto.
 //
-//  Cada elemento de CHUNKS es un "fragmento" de conocimiento. El
-//  recuperador (buscarContexto) elige los más relevantes a la pregunta
-//  del interesado y se los pasa al LLM como única fuente de verdad.
-//
-//  Para enseñarle algo nuevo al bot, agrega un chunk aquí.
-//  Cuando proceses chats reales (parse_whatsapp.js), pega aquí las
-//  respuestas y objeciones que mejor funcionan en la vida real.
+//  Las OBJECIONES están aquí como chunks: cuando la persona objeta
+//  ("está caro", "no tengo dinero"...), el recuperador trae el guion
+//  correcto y Brayan lo usa casi tal cual.
 // ───────────────────────────────────────────────────────────────
 
-// Datos de contacto / marca. Ajusta lo que haga falta.
 const DATOS = {
   marca: "E-Master Project",
   programa: "E-Master Academy VIP",
+  club: "Upgrade Project",
   fundador: "Brayan Hernández",
   instagram: "https://instagram.com/brayanher_",
-  // ⚠️ Completa cuando los tengas (déjalos vacíos si no estás seguro:
-  //    el bot ofrece agendar la llamada en vez de inventar el dato).
-  web: "",
-  email: "",
   empresa: "E-Master Project LLC",
 };
 
 const CHUNKS = [
+  // ───────── Quién / qué ─────────
   {
     tema: "quien es brayan hernandez fundador mentor",
     texto:
-      "Brayan Hernández es un emprendedor colombiano, fundador de E-Master Project. Empezó vendiendo por internet y construyó un negocio de e-commerce a gran escala (dropshipping privado y marca propia). Hoy enseña a otros el mismo sistema a través de mentoría privada. Su cuenta es @brayanher_.",
+      "Brayan Hernández es un emprendedor colombiano, fundador de E-Master Project. Empezó vendiendo por internet y construyó un negocio de e-commerce a gran escala (dropshipping privado y marca propia). Hoy enseña su sistema con mentoría privada. Instagram: @brayanher_.",
   },
   {
-    tema: "que es e-master academy vip programa curso mentoria",
+    tema: "que es e-master academy vip programa",
     texto:
-      "E-Master Academy VIP es el programa de formación avanzada en e-commerce de Brayan Hernández. Es el sistema paso a paso para construir un negocio rentable vendiendo productos por internet usando inteligencia artificial, desde un computador y desde cualquier parte del mundo. Combina dropshipping privado y marca propia.",
+      "E-Master Academy VIP es el programa de formación avanzada en e-commerce de Brayan: el sistema paso a paso para construir un negocio rentable vendiendo por internet (dropshipping privado y marca propia) usando inteligencia artificial, desde un computador y desde cualquier parte del mundo.",
   },
   {
-    tema: "que aprendes contenido tienda meta ads mercado persuasion",
+    tema: "que aprendes tienda meta ads mercado persuasion mentalidad",
     texto:
-      "En el programa aprendes a construir un negocio sólido y rentable en dropshipping: creación de tu tienda online, investigación de mercado, publicidad avanzada en Meta Ads (Facebook/Instagram), persuasión efectiva en ventas y gestión emocional/mentalidad. El objetivo es que domines todo el proceso de principio a fin con apoyo de la IA.",
+      "En el programa aprendes a construir un negocio sólido: creación de tu tienda online, investigación de mercado, publicidad avanzada en Meta Ads, persuasión efectiva en ventas y gestión emocional/mentalidad, todo apoyado en IA.",
   },
   {
-    tema: "que incluye clases en vivo mentoria comunidad herramientas",
+    tema: "que incluye clases en vivo mentoria comunidad",
     texto:
-      "El programa incluye: clases en vivo con expertos, estrategias comprobadas, mentoría personalizada, acceso a una comunidad privada de emprendedores comprometidos, y herramientas prácticas para generar ingresos reales y estables desde cualquier parte del mundo.",
-  },
-  {
-    tema: "para quien es desde cero sin experiencia requisitos",
-    texto:
-      "El programa está pensado para personas que quieren un cambio real en su vida y están dispuestas a comprometerse, aunque empiecen desde cero. Varios estudiantes no sabían nada de este negocio cuando empezaron. Lo importante es la disciplina, el enfoque y seguir el sistema con la mentoría. Se necesita un computador y conexión a internet.",
-  },
-  {
-    tema: "dropshipping privado marca propia que es como funciona",
-    texto:
-      "El modelo que enseña Brayan es dropshipping privado y marca propia: no es el dropshipping genérico saturado, sino una operación más sólida con proveedores y marca propia, apoyada en publicidad en Meta Ads e inteligencia artificial. Se puede operar desde cualquier país del mundo.",
+      "Incluye clases en vivo con expertos, estrategias comprobadas, mentoría personalizada, acceso a una comunidad privada de emprendedores y herramientas prácticas para generar ingresos desde cualquier parte del mundo.",
   },
   {
     tema: "resultados testimonios estudiantes casos de exito",
     texto:
-      "Estudiantes con resultados construidos con el Proyecto E-Master: Andrés Galíndez pasó de trabajar en un parqueadero a +10.000 USD en su primer mes. Cristian Lozano (Popayán), +10.000 USD tras dejar su empleo. David Montoya pasó de un call center a +10.000 USD su primer mes. Kevin y Carlos (Barranquilla), +20.000 USD en un mes. Luis David, +50.000 USD en sus primeros dos meses (lo hizo desde la universidad). Lucas Valderruten, sin saber nada del negocio, +10.000 USD su primer mes. Samuel Cabrera (Cali), desde cero, +10.000 USD su primer mes. Liz y German, en pareja, +10.000 USD en un mes. Hay entrevistas completas en YouTube.",
+      "Casos reales: Andrés Galíndez pasó de un parqueadero a +10.000 USD su primer mes. Cristian Lozano (Popayán), +10.000 USD. David Montoya, de un call center a +10.000 USD. Kevin y Carlos (Barranquilla), +20.000 USD en un mes. Luis David, +50.000 USD en dos meses estudiando en la universidad. Lucas Valderruten y Samuel Cabrera (Cali), +10.000 USD desde cero. Liz y German, en pareja, +10.000 USD. Hay entrevistas en YouTube.",
+  },
+
+  // ───────── Inversión / capital / llamada ─────────
+  {
+    tema: "inversion capital cuanto cuesta cuanto necesito empezar precio",
+    texto:
+      "Para empezar por cuenta propia se necesita invertir en la formación, en la publicidad (pauta) y en las plataformas. El mínimo para iniciar son $1,000 USD (unos 3 millones de pesos colombianos). El precio del programa grande no se da por chat: se explica en la llamada con el equipo. El club Upgrade Project sí tiene precio fijo: $34 USD al mes.",
   },
   {
-    tema: "es real confiable estafa pruebas",
+    tema: "llamada reunion estrategica como funciona agendar calendly",
     texto:
-      "E-Master es un programa real con resultados verificables: hay entrevistas completas de estudiantes en YouTube y una comunidad activa de emprendedores. Brayan muestra su propio recorrido y el de sus alumnos. La mejor forma de resolver dudas es agendar la llamada estratégica con el equipo, sin compromiso.",
+      "Cuando la persona cuenta con el capital mínimo (~$1,000 USD) y quiere avanzar, se agenda una reunión con el equipo por Calendly. En esa llamada le explican todo el proceso, el programa y la inversión, y resuelven dudas. Se le pide avisar cuando agende para confirmar.",
+  },
+
+  // ───────── Club Upgrade Project ─────────
+  {
+    tema: "club upgrade project skool 34 dolares mensual que es low ticket",
+    texto:
+      "Upgrade Project es el club de Brayan en Skool, por $34 USD al mes, para quienes empiezan con poco capital. Da las herramientas para empezar desde cero y apuntar a generar de 1k a 3k USD al mes: anuncios en TikTok y Facebook, diseño de página, entrega de productos, productos ganadores, marca personal y ventas. Incluye posibilidad de llamada 1:1 con Brayan para los más activos. Es exclusivo y privado: comparte info de programas de 2 mil dólares por ese precio. Link: https://www.skool.com/upgrade-project-6844/about",
   },
   {
-    tema: "inversion precio costo cuanto vale planes facilidades",
+    tema: "tarjeta nequi colombia pago sin tarjeta como pagar",
     texto:
-      "La inversión en el programa, los planes disponibles y las facilidades de pago las explica el equipo en la llamada estratégica, según el caso de cada persona. Por eso primero se agenda una llamada: ahí se ve si la persona califica para un cupo y se le explica todo. (No se da el precio por chat.)",
+      "Si la persona es de Colombia y no tiene tarjeta para pagar el club, puede sacar la tarjeta de Nequi (es gratis y rápido) y con eso paga. Se le puede enviar un video de cómo sacar la tarjeta Nequi y motivarlo a ingresar.",
   },
   {
-    tema: "llamada estrategica como funciona agendar sin compromiso",
+    tema: "para quien desde cero sin experiencia compromiso requisitos",
     texto:
-      "La llamada estratégica es una sesión con el equipo de E-Master donde conocen el caso de la persona, le explican cómo funciona el programa y la inversión, y resuelven sus dudas. Es sin compromiso. Los cupos del programa son limitados, por eso se prioriza a quienes agendan y llegan a la llamada.",
+      "El programa y el club son para personas comprometidas que quieren un cambio real, aunque empiecen desde cero. Se necesita un computador, conexión a internet y disposición para ejecutar. La mayoría de los casos de éxito empezaron sin experiencia.",
   },
   {
-    tema: "desde cualquier pais del mundo internacional",
+    tema: "desde cualquier pais del mundo internacional tiempo dedicacion",
     texto:
-      "El negocio se puede construir desde cualquier parte del mundo: solo necesitas un computador y conexión a internet. La mentoría y la comunidad son online, y la operación de e-commerce puede apuntar a distintos mercados.",
+      "El negocio se puede construir desde cualquier país, solo con computador e internet, y se puede empezar en paralelo a un trabajo o estudio (Luis David lo hizo en la universidad). La clave es constancia y seguir el sistema con la guía.",
+  },
+
+  // ───────── OBJECIONES (guion casi literal) ─────────
+  {
+    tema: "objecion caro costoso muy costoso precio alto",
+    texto:
+      "OBJECIÓN 'me parece muy costoso': Bro, el costo ya lo estás pagando… solo que sin resultados. La diferencia es que hoy puedes invertir para cambiar esa situación. ¿Qué prefieres seguir pagando: el precio de quedarte igual o la inversión que te va a sacar de ahí? Y 'caro' comparado con qué… ¿con algo que no te da resultados? Aquí recibes en proporción a lo que inviertes.",
   },
   {
-    tema: "tiempo dedicacion compatible trabajo estudio",
+    tema: "objecion no tengo dinero no tengo plata sin dinero",
     texto:
-      "Se puede empezar dedicándole tiempo en paralelo a un trabajo o estudio. Por ejemplo, Luis David construyó su operación mientras estaba en la universidad. La clave es la constancia y seguir el sistema; el equipo orienta cuánto tiempo conviene dedicarle según el caso.",
+      "OBJECIÓN 'no tengo el dinero': El 90% de los que hoy están con nosotros tampoco lo tenían, y justo por eso empezaron: para conseguirlo. Si con la info de adentro puedes pasar a facturar 3 mil USD, ¿valdría la pena hacer el esfuerzo? Si ya estuvieras generando lo que quieres, ¿me dirías que no? Hagamos un abono y arrancamos hoy mismo; no dejes que el dinero te frene otra vez.",
   },
   {
-    tema: "garantia resultados promesa ingresos",
+    tema: "objecion lo voy a pensar lo tengo que pensar pensarlo",
     texto:
-      "El programa entrega formación, mentoría, comunidad y herramientas. Los resultados dependen del compromiso, la ejecución y el contexto de cada persona; los casos de éxito son reales pero no son una promesa de que todos ganen lo mismo. Cualquier detalle sobre garantías o condiciones lo explica el equipo en la llamada.",
+      "OBJECIÓN 'me lo tengo que pensar': Lo entiendo bro, pero entre tú y yo, cuando alguien dice eso hay algo real detrás. Dime qué te genera la duda y lo resolvemos. ¿Tienes dudas del programa? No, ¿cierto? Entonces lo único que estás pensando es el tema financiero; resolvámoslo.",
   },
   {
-    tema: "contacto instagram redes",
+    tema: "objecion mas barato otras opciones comparar competencia",
     texto:
-      `Puedes ver el contenido y los resultados de Brayan en Instagram: ${DATOS.instagram}. Para avanzar con el programa, lo mejor es agendar la llamada estratégica con el equipo.`,
+      "OBJECIÓN 'conozco algo más barato / quiero ver otras opciones': Te entiendo bro, pero buscar lo más barato casi siempre sale más caro… el precio más caro en los negocios es el tiempo. Si hoy puedes lograr resultados en 30 días, ¿valdría la pena invertir ya y dejar de perder tiempo? Arranquemos hoy mismo.",
+  },
+  {
+    tema: "objecion en un rato hago el pago despues pago luego",
+    texto:
+      "OBJECIÓN 'en un rato hago el pago': Bro, hagámoslo de una vez; así confirmamos que todo funcione y te lleguen los accesos. Te soy sincero: hay algo que no me estás diciendo. ¿Eres de los que toman las oportunidades o de los que las aplazan?",
+  },
+  {
+    tema: "objecion hablar con pareja esposa familia consultar",
+    texto:
+      "OBJECIÓN 'debo hablarlo con mi pareja/familiar': Lo entiendo full. El detalle es que esa persona no estuvo en esta conversación, no vio cómo puedo ayudarte y va a decidir con otra información. ¿Esto te parece una buena o una mala decisión? Hagamos el pago ahora y luego hablas con calma; seguimos tu proceso hoy mismo.",
+  },
+  {
+    tema: "objecion tengo el dinero en efectivo cash",
+    texto:
+      "OBJECIÓN 'tengo el dinero en efectivo': Total, no hay lío bro. Solo que los cupos se asignan por orden de pago y el sistema me exige dejar un registro hoy. ¿Tienes algo en digital o alguien que te pueda hacer un giro ya mismo? Así aseguramos tu acceso y tú repones el dinero cuando lo retires.",
+  },
+  {
+    tema: "objecion ahora no puedo mas adelante despues no es el momento",
+    texto:
+      "OBJECIÓN 'ahora no puedo / no es el momento': Bro, el problema no es empezar hoy, es cuánto te cuesta cada mes seguir igual. Retrasar tu inicio no te ahorra dinero, te cuesta oportunidades. ¿No es la primera vez que te pasa, cierto? Ese 'después' nunca llega. Si hoy no rompes ese patrón, ¿cuándo lo vas a romper?",
+  },
+  {
+    tema: "objecion descuento rebaja promocion mas economico",
+    texto:
+      "OBJECIÓN '¿no tienes un descuento?': Nosotros no competimos por precio, bro, competimos por resultados. Lo que compras aquí no es un curso: es un resultado. Si te doy un descuento tendría que quitarte parte del acompañamiento y eso afectaría tus resultados, y no te voy a entregar algo que no te sirva.",
+  },
+  {
+    tema: "es real estafa confiable seguro pruebas funciona de verdad",
+    texto:
+      "E-Master es real, con resultados verificables y entrevistas de estudiantes en YouTube, además de una comunidad activa. La mejor forma de despejar dudas es la llamada con el equipo (o entrar al club si el capital es bajo).",
   },
 ];
 
@@ -109,7 +143,7 @@ function normalizar(s) {
     .replace(/[̀-ͯ]/g, "");
 }
 
-// Palabras de relleno que NO deben usarse para recuperar (no aportan tema).
+// Palabras de relleno que NO aportan tema.
 const STOPWORDS = new Set([
   "donde", "como", "cual", "cuales", "para", "por", "que", "los", "las",
   "una", "uno", "del", "con", "sin", "mas", "muy", "este", "esta", "esto",
@@ -118,24 +152,19 @@ const STOPWORDS = new Set([
   "y", "o", "el", "la", "lo", "un", "me", "te", "se", "su", "de", "en", "a",
 ]);
 
-// Recuperador por solapamiento de RAÍCES de palabra (RAG ligero).
-// Devuelve los `k` chunks más relevantes a la consulta. Usar raíces
-// (primeros caracteres) hace que "experiencia" calce con "experimentar", etc.
+// Recuperador por solapamiento de raíces de palabra (RAG ligero).
 function buscarContexto(consulta, k = 4) {
   const palabras = normalizar(consulta)
     .split(/[^a-z0-9ñ]+/i)
     .filter((p) => p.length >= 4 && !STOPWORDS.has(p));
 
-  if (palabras.length === 0) {
-    // Sin palabras útiles: devolvemos lo esencial (qué es + llamada).
-    return [CHUNKS[1], CHUNKS[9]];
-  }
+  if (palabras.length === 0) return [CHUNKS[1], CHUNKS[5]]; // qué es + inversión
 
   const puntuados = CHUNKS.map((c) => {
     const base = normalizar(c.tema + " " + c.texto);
     let score = 0;
     for (const p of palabras) {
-      const raiz = p.slice(0, 5); // raíz: primeros 5 caracteres
+      const raiz = p.slice(0, 5);
       if (base.includes(raiz)) score += 1;
     }
     return { c, score };
@@ -147,8 +176,7 @@ function buscarContexto(consulta, k = 4) {
     .slice(0, k)
     .map((x) => x.c);
 
-  // Si nada coincidió, devolvemos contexto general para no dejar al LLM a ciegas.
-  if (relevantes.length === 0) return [CHUNKS[1], CHUNKS[9]];
+  if (relevantes.length === 0) return [CHUNKS[1], CHUNKS[5]];
   return relevantes;
 }
 

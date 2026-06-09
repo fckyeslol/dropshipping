@@ -13,7 +13,7 @@
 
 const express = require("express");
 const twilio = require("twilio");
-const oferta = require("./oferta");
+const guion = require("./guion");
 const resultados = require("./resultados");
 const llm = require("./llm");
 
@@ -107,7 +107,7 @@ async function procesarMensaje(mensajeUsuario, sesion) {
   // 1) Saludo / reinicio → el equipo se presenta (template, instantáneo).
   if (SALUDOS.includes(texto)) {
     sesion.historial = [];
-    return oferta.SALUDO;
+    return guion.SALUDO;
   }
 
   // 2) Pide resultados/pruebas → bloque de testimonios reales.
@@ -125,7 +125,7 @@ async function procesarMensaje(mensajeUsuario, sesion) {
   }
 
   // 4) Respaldo si no hay LLM disponible.
-  return oferta.SALUDO;
+  return guion.SALUDO;
 }
 
 // ───────── Webhook de Twilio (WhatsApp) ─────────
@@ -144,7 +144,7 @@ app.post("/webhook", async (req, res) => {
     sesion.saludado = true;
     res.type("text/xml").send(new MessagingResponse().toString()); // ack vacío
     setTimeout(() => {
-      enviarWhatsapp(id, oferta.SALUDO).catch((e) =>
+      enviarWhatsapp(id, guion.SALUDO).catch((e) =>
         console.error("Error enviando saludo diferido:", e.message)
       );
     }, delaySaludoMs());
@@ -157,7 +157,7 @@ app.post("/webhook", async (req, res) => {
     respuesta = await procesarMensaje(entrante, sesion);
   } catch (err) {
     console.error("Error procesando mensaje:", err.message);
-    respuesta = oferta.SALUDO;
+    respuesta = guion.SALUDO;
   }
 
   const twiml = new MessagingResponse();
@@ -172,7 +172,7 @@ app.post("/webhook", async (req, res) => {
   res.type("text/xml").send(twiml.toString());
 });
 
-const VERSION = "v5-cierre";
+const VERSION = "v6-workflow";
 app.get("/", (_req, res) => {
   res.send(`Bot de WhatsApp de E-Master (Brayan Hernández) activo ✅ (${VERSION})`);
 });
