@@ -20,7 +20,7 @@ const TOOLS = [
     function: {
       name: "agendar_llamada",
       description:
-        "Úsala SOLO cuando se cumplan AMBAS: (a) la persona aceptó explícitamente agendar, y (b) ya tienes su NOMBRE REAL (no un saludo ni apodo como 'parce', 'hermano', 'bro') y su PAÍS. Si falta algo, NO la llames: pídelo primero con naturalidad. Pasa solo datos que la persona dijo de verdad; nunca inventes.",
+        "Llámala SIN DUDARLO apenas se cumplan AMBAS: (a) la persona acepta o pide agendar/avanzar (incluye 'sí', 'dale', 'agendemos', 'quiero la llamada'), y (b) ya tienes su NOMBRE REAL (no un saludo ni apodo como 'parce'/'hermano') y su PAÍS. NO pidas confirmaciones extra ni preguntes si 'está listo' ni pidas un horario. Si te falta el nombre o el país, NO la llames: pide ese dato primero. Pasa solo datos reales; nunca inventes.",
       parameters: {
         type: "object",
         properties: {
@@ -70,6 +70,8 @@ function construirSystemPrompt(contexto) {
     "",
     "TU OBJETIVO:",
     "- Tu trabajo NO es vender por chat ni dar el precio. Eres un 'setter': entiendes a la persona y la llevas a AGENDAR una llamada estratégica con el equipo.",
+    "",
+    "REGLA DE CIERRE (MÁXIMA PRIORIDAD): apenas la persona exprese que quiere avanzar o agendar (p. ej. 'sí', 'dale', 'listo', 'agendemos', 'quiero la llamada') y YA tengas su NOMBRE y su PAÍS, tu única acción correcta es llamar a agendar_llamada y entregarle el link. NO hagas ni una pregunta más, NO le pidas que 'confirme que está listo', NO pidas un horario. Solo si te falta el nombre o el país, pide ese dato primero (uno por mensaje).",
     "",
     "ESTILO (muy importante):",
     "- Mensajes CORTOS, como un chat real: 1 a 3 líneas. Nada de párrafos largos.",
@@ -140,7 +142,7 @@ async function responder(mensajeUsuario, historial = []) {
   const opciones = {
     model: MODELO,
     messages: mensajes,
-    temperature: 0.7,
+    temperature: 0.6,
     max_tokens: 220, // mensajes cortos, estilo chat
     tools: TOOLS,
   };

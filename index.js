@@ -172,7 +172,7 @@ app.post("/webhook", async (req, res) => {
   res.type("text/xml").send(twiml.toString());
 });
 
-const VERSION = "v4-link";
+const VERSION = "v5-cierre";
 app.get("/", (_req, res) => {
   res.send(`Bot de WhatsApp de E-Master (Brayan Hernández) activo ✅ (${VERSION})`);
 });
