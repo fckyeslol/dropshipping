@@ -45,17 +45,52 @@ function resumenLead(lead = {}) {
   return partes.join(" · ") || "interesado";
 }
 
+// Saludos/apodos que NO son un nombre (Colombia/LatAm). Si llegan como
+// "nombre", el bot debe preguntar el nombre real antes de agendar.
+const NO_ES_NOMBRE = new Set([
+  "hola", "buenas", "hermano", "hermana", "parce", "parcero", "bro", "brother",
+  "amigo", "amiga", "llave", "mor", "men", "man", "crack", "socio", "jefe",
+  "compa", "pana", "mano", "loco", "rey", "reina", "papi", "mami", "señor",
+  "senor", "señora", "senora", "que mas", "quemas", "saludos", "buen dia",
+]);
+
+function pareceNombreValido(nombre = "") {
+  const n = String(nombre)
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "");
+  if (n.length < 2) return false;
+  return !NO_ES_NOMBRE.has(n);
+}
+
 // Herramienta que usa el LLM cuando la persona quiere agendar.
-// Devuelve { disponible, link, resumen } o { disponible:false, motivo }.
+// Valida que haya datos mínimos (nombre real + país) ANTES de agendar, para
+// no registrar leads basura. Devuelve { disponible, link, resumen } o
+// { disponible:false, motivo } para que el bot pida lo que falte.
 function agendarLlamada(lead = {}) {
-  // Guardamos el lead aunque no haya link configurado (no se pierde).
+  const faltantes = [];
+  if (!pareceNombreValido(lead.nombre)) {
+    faltantes.push("su nombre real (lo que tienes parece un saludo o apodo)");
+  }
+  if (!lead.pais || String(lead.pais).trim().length < 2) {
+    faltantes.push("su país");
+  }
+  if (faltantes.length > 0) {
+    return {
+      disponible: false,
+      motivo: "Aún falta " + faltantes.join(" y ") + ". Pídeselo con naturalidad antes de agendar; no inventes datos.",
+    };
+  }
+
+  // Datos OK: ahora sí registramos el lead (logs + CRM si está configurado).
   registrarLead({ ...lead, evento: "agendar_llamada", ts: new Date().toISOString() });
 
   if (!BOOKING_LINK) {
     return {
       disponible: false,
       motivo:
-        "Aún no hay link de agenda configurado (BOOKING_LINK). Pide sus datos y dile que el equipo lo contacta enseguida para coordinar la llamada.",
+        "Datos completos pero aún no hay link de agenda (BOOKING_LINK). Confírmale que el equipo lo contacta enseguida para coordinar la llamada.",
     };
   }
 
