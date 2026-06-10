@@ -263,7 +263,7 @@ app.post("/api/manychat", async (req, res) => {
   }
 });
 
-const VERSION = "v11-instagram-manychat";
+const VERSION = "v12-nequi-cierre";
 app.get("/", (_req, res) => {
   res.send(`Bot de WhatsApp de E-Master (Brayan Hernández) activo ✅ (${VERSION})`);
 });

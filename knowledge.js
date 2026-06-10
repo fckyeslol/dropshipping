@@ -69,7 +69,10 @@ const CHUNKS = [
   {
     tema: "tarjeta nequi colombia pago sin tarjeta como pagar",
     texto:
-      "Si la persona es de Colombia y no tiene tarjeta para pagar el club, puede sacar la tarjeta de Nequi (es gratis y rápido) y con eso paga. Se le puede enviar un video de cómo sacar la tarjeta Nequi y motivarlo a ingresar.",
+      "Si la persona es de Colombia y no tiene tarjeta para pagar el club, puede sacar la tarjeta de Nequi (es gratis y rápido) y con eso paga." +
+      (process.env.NEQUI_VIDEO_URL
+        ? ` Comparte este video de cómo sacarla y motívalo a ingresar: ${process.env.NEQUI_VIDEO_URL}`
+        : " Se le puede enviar un video de cómo sacar la tarjeta Nequi y motivarlo a ingresar."),
   },
   {
     tema: "para quien desde cero sin experiencia compromiso requisitos",
