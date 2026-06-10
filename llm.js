@@ -110,7 +110,7 @@ function construirSystemPrompt(contexto) {
 }
 
 // Genera la respuesta. `historial`: [{ role, content }]. Devuelve string o null.
-async function responder(mensajeUsuario, historial = [], telefono = null) {
+async function responder(mensajeUsuario, historial = [], meta = {}) {
   const api = getCliente();
   if (!api) return null;
 
@@ -146,8 +146,8 @@ async function responder(mensajeUsuario, historial = [], telefono = null) {
           args = {};
         }
         let resultado;
-        if (tc.function.name === "agendar_llamada") resultado = acciones.agendarLlamada({ ...args, telefono });
-        else if (tc.function.name === "enviar_club") resultado = acciones.enviarClub({ ...args, telefono });
+        if (tc.function.name === "agendar_llamada") resultado = acciones.agendarLlamada({ ...args, ...meta });
+        else if (tc.function.name === "enviar_club") resultado = acciones.enviarClub({ ...args, ...meta });
         else resultado = { ok: false, motivo: "herramienta desconocida" };
 
         // El primer bloque final listo se envía tal cual (link exacto, sin paráfrasis).

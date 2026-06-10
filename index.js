@@ -130,7 +130,7 @@ function dividirEnMensajes(texto) {
   return partes.length > 0 ? partes : [limpio];
 }
 
-async function procesarMensaje(mensajeUsuario, sesion, telefono = null) {
+async function procesarMensaje(mensajeUsuario, sesion, meta = {}) {
   const texto = normalizar(mensajeUsuario);
 
   // 1) Saludo / reinicio → saludo (audio si está configurado, si no texto).
@@ -145,7 +145,7 @@ async function procesarMensaje(mensajeUsuario, sesion, telefono = null) {
   }
 
   // 3) Todo lo demás lo lleva el LLM (Brayan), con E-Master como contexto.
-  const respuestaLLM = await llm.responder(mensajeUsuario, sesion.historial, telefono);
+  const respuestaLLM = await llm.responder(mensajeUsuario, sesion.historial, meta);
   if (respuestaLLM) {
     sesion.historial.push({ role: "user", content: mensajeUsuario });
     sesion.historial.push({ role: "assistant", content: respuestaLLM });
@@ -171,6 +171,7 @@ app.post("/webhook", async (req, res) => {
     sesion.contactoReportado = true;
     acciones.reportarSeguimiento({
       telefono,
+      canal: "whatsapp",
       evento: "primer_contacto",
       estado: "sin_agendar",
       ts: new Date().toISOString(),
@@ -195,7 +196,7 @@ app.post("/webhook", async (req, res) => {
 
   let respuesta;
   try {
-    respuesta = await procesarMensaje(entrante, sesion, telefono);
+    respuesta = await procesarMensaje(entrante, sesion, { telefono, canal: "whatsapp" });
   } catch (err) {
     console.error("Error procesando mensaje:", err.message);
     respuesta = guion.SALUDO;
@@ -214,7 +215,55 @@ app.post("/webhook", async (req, res) => {
   res.type("text/xml").send(twiml.toString());
 });
 
-const VERSION = "v10-menos-burbujas";
+// ───────── API para ManyChat (Instagram DMs) ─────────
+// ManyChat manda { mensaje, usuario, nombre } y devolvemos los mensajes en el
+// formato "v2" que ManyChat renderiza como burbujas (más un campo "respuesta"
+// plano por si prefieres mapearlo a un solo mensaje). Misma lógica que WhatsApp.
+app.post("/api/manychat", async (req, res) => {
+  limpiarSesiones();
+  try {
+    const usuario = String(req.body.usuario || req.body.user_id || "anon");
+    const mensaje = String(req.body.mensaje || req.body.text || "");
+    const id = "ig:" + usuario;
+    const sesion = obtenerSesion(id);
+
+    // Seguimiento: primer contacto (canal instagram).
+    if (!sesion.contactoReportado) {
+      sesion.contactoReportado = true;
+      acciones.reportarSeguimiento({
+        telefono: usuario,
+        canal: "instagram",
+        evento: "primer_contacto",
+        estado: "sin_agendar",
+        ts: new Date().toISOString(),
+      });
+    }
+    sesion.saludado = true;
+
+    let respuesta;
+    try {
+      respuesta = await procesarMensaje(mensaje, sesion, { telefono: usuario, canal: "instagram" });
+    } catch (err) {
+      console.error("Error procesando (manychat):", err.message);
+      respuesta = guion.SALUDO;
+    }
+
+    // En IG mandamos texto. Si el saludo viene en audio (config de WhatsApp), usamos texto.
+    const base = typeof respuesta === "string" ? respuesta : guion.SALUDO;
+    const partes = dividirEnMensajes(base);
+
+    res.json({
+      version: "v2",
+      content: { messages: partes.map((t) => ({ type: "text", text: t })) },
+      respuesta: partes.join("\n\n"),
+    });
+  } catch (err) {
+    console.error("Error en /api/manychat:", err.message);
+    res.json({ version: "v2", content: { messages: [{ type: "text", text: "Dame un segundo 🙌" }] } });
+  }
+});
+
+const VERSION = "v11-instagram-manychat";
 app.get("/", (_req, res) => {
   res.send(`Bot de WhatsApp de E-Master (Brayan Hernández) activo ✅ (${VERSION})`);
 });

@@ -60,6 +60,7 @@ function registrarLead(lead, opciones = {}) {
   reportarSeguimiento({
     telefono: lead.telefono || null,
     nombre: lead.nombre || null,
+    canal: lead.canal || "whatsapp",
     estado: lead.rama === "llamada" ? "agendo" : "club",
     ts: lead.ts,
   });
