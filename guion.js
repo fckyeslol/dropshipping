@@ -7,11 +7,17 @@
 //  (BOOKING_LINK / CLUB_LINK); si no están, usan los del guion.
 // ───────────────────────────────────────────────────────────────
 
+// Limpia una URL de un posible prefijo "NOMBRE=" que se cuele al pegar en Railway
+// (ej. si pegan "BOOKING_LINK=https://..." en el campo del valor).
+function limpiarUrl(v) {
+  return String(v || "").trim().replace(/^[A-Za-z_]+\s*=\s*/, "");
+}
+
 // Links (sobreescribibles por variables de entorno)
 const CALENDLY_LINK =
-  process.env.BOOKING_LINK || "https://calendly.com/d/cxz9-jk3-tfp/e-master-brayan-hernandez";
+  limpiarUrl(process.env.BOOKING_LINK) || "https://calendly.com/d/cxz9-jk3-tfp/e-master-brayan-hernandez";
 const SKOOL_LINK =
-  process.env.CLUB_LINK || "https://www.skool.com/upgrade-project-6844/about";
+  limpiarUrl(process.env.CLUB_LINK) || "https://www.skool.com/upgrade-project-6844/about";
 
 // ── Apertura cuando alguien solo saluda (pido nombre y abro) ──
 const SALUDO =
