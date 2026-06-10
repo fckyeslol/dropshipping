@@ -115,15 +115,19 @@ function normalizar(texto) {
     .trim();
 }
 
-// Divide un texto en varios mensajes para enviarlos por separado (más humano).
-// Corta en las LÍNEAS EN BLANCO (un salto simple se queda en el mismo mensaje).
-// También descarta separadores sueltos como "-" o "—".
+// Divide un texto en varios mensajes (más humano), PERO solo si es largo.
+// Los mensajes cortos van en UNA sola burbuja (así no saturamos a WhatsApp/Twilio
+// con muchas burbujas); los largos se cortan en sus líneas en blanco.
+const UMBRAL_DIVIDIR = 300; // caracteres: por debajo de esto, un solo mensaje
+
 function dividirEnMensajes(texto) {
-  const partes = String(texto || "")
+  const limpio = String(texto || "").trim();
+  if (limpio.length <= UMBRAL_DIVIDIR) return [limpio];
+  const partes = limpio
     .split(/\n[ \t]*\n+/)
     .map((p) => p.trim())
     .filter((p) => p.length > 0 && !/^[-—]+$/.test(p));
-  return partes.length > 0 ? partes : [String(texto || "").trim()];
+  return partes.length > 0 ? partes : [limpio];
 }
 
 async function procesarMensaje(mensajeUsuario, sesion, telefono = null) {
@@ -210,7 +214,7 @@ app.post("/webhook", async (req, res) => {
   res.type("text/xml").send(twiml.toString());
 });
 
-const VERSION = "v9-fix-link";
+const VERSION = "v10-menos-burbujas";
 app.get("/", (_req, res) => {
   res.send(`Bot de WhatsApp de E-Master (Brayan Hernández) activo ✅ (${VERSION})`);
 });
