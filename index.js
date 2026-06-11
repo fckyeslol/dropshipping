@@ -11,6 +11,10 @@
 //
 // El estado de cada conversación se guarda EN MEMORIA por número.
 
+// Carga el .env en desarrollo local. En Railway las vars van en la plataforma
+// (ahí no hay .env y dotenv simplemente no hace nada).
+try { require("dotenv").config(); } catch (_e) {}
+
 const path = require("path");
 const express = require("express");
 const twilio = require("twilio");

@@ -19,6 +19,8 @@ const NO_ES_NOMBRE = new Set([
   "amigo", "amiga", "llave", "mor", "men", "man", "crack", "socio", "jefe",
   "compa", "pana", "mano", "loco", "rey", "reina", "papi", "mami", "señor",
   "senor", "señora", "senora", "que mas", "quemas", "saludos",
+  // Genéricos que la IA podría inventar si no tiene el nombre real:
+  "anonimo", "cliente", "usuario", "interesado", "persona", "lead", "prueba",
 ]);
 
 function pareceNombreValido(nombre = "") {
