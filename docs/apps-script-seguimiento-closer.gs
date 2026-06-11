@@ -40,6 +40,7 @@ function guardarSeguimiento(ss, d, ahora) {
   var estado, paso;
   if (d.estado === "agendo" || d.rama === "llamada") { estado = "Agendó"; paso = "Confirmar cita (Calendly)"; }
   else if (d.estado === "club") { estado = "Club"; paso = "Confirmar pago del club"; }
+  else if (d.estado === "sin_dinero") { estado = "Sin dinero"; paso = "Re-contactar cuando tenga capital"; }
   else { estado = "Nuevo"; paso = "Calificar"; }
 
   var ultima = ahora + (canal ? " (" + canal + ")" : "");
