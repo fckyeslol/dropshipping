@@ -18,6 +18,8 @@ const CALENDLY_LINK =
   limpiarUrl(process.env.BOOKING_LINK) || "https://calendly.com/d/cxz9-jk3-tfp/e-master-brayan-hernandez";
 const SKOOL_LINK =
   limpiarUrl(process.env.CLUB_LINK) || "https://www.skool.com/upgrade-project-6844/about";
+const VIDEO_GRATIS_URL =
+  limpiarUrl(process.env.VIDEO_GRATIS_URL) || "https://youtu.be/iBGLGsKrpk0";
 
 // ── Apertura cuando alguien solo saluda (pido nombre y abro) ──
 const SALUDO =
@@ -52,9 +54,16 @@ const CLUB_BLOQUE =
   SKOOL_LINK +
   "\n\nLe das en *Join*, sigues los pasos y quedas adentro de una vez.\n\nMándame la captura apenas ingreses para activarte de una 🙌";
 
+// ── Off-ramp: NO tiene dinero ni para el club → video gratis + seguir el canal ──
+const VIDEO_GRATIS =
+  "Tranquilo bro, sin afán 🙌 Mírate este video y sígueme en mi canal, para que cuando puedas, ya tengas una idea de todo.\n\n" +
+  VIDEO_GRATIS_URL +
+  "\n\n¡Nos vemos pronto!";
+
 module.exports = {
   CALENDLY_LINK,
   SKOOL_LINK,
+  VIDEO_GRATIS_URL,
   SALUDO,
   ABRIR_CALIFICACION,
   INVERSION,
@@ -62,4 +71,5 @@ module.exports = {
   CLUB_PRESENTACION,
   CALENDLY_BLOQUE,
   CLUB_BLOQUE,
+  VIDEO_GRATIS,
 };

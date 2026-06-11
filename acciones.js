@@ -63,7 +63,7 @@ function registrarLead(lead, opciones = {}) {
     telefono: lead.telefono || null,
     nombre: lead.nombre || null,
     canal: lead.canal || "whatsapp",
-    estado: lead.rama === "llamada" ? "agendo" : "club",
+    estado: lead.rama === "llamada" ? "agendo" : lead.rama === "club" ? "club" : "sin_dinero",
     ts: lead.ts,
   });
 }
@@ -88,4 +88,10 @@ function enviarClub(lead = {}) {
   return { ok: true, mensaje: guion.CLUB_BLOQUE };
 }
 
-module.exports = { agendarLlamada, enviarClub, registrarLead, reportarSeguimiento, pareceNombreValido };
+// Off-ramp: la persona no tiene dinero ni para el club → video gratis + seguir el canal.
+function enviarVideoGratis(lead = {}) {
+  registrarLead({ ...lead, rama: "sin_dinero", evento: "video_gratis", ts: new Date().toISOString() }, { tabla: false });
+  return { ok: true, mensaje: guion.VIDEO_GRATIS };
+}
+
+module.exports = { agendarLlamada, enviarClub, enviarVideoGratis, registrarLead, reportarSeguimiento, pareceNombreValido };

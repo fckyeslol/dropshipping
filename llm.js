@@ -54,6 +54,23 @@ const TOOLS = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "enviar_video_gratis",
+      description:
+        "Úsala cuando la persona deja claro que NO tiene NADA de dinero (ni siquiera los $34 del club). En vez de insistir, le mandas un video gratis y lo invitas a seguir el canal, con buena onda. Devuelve el mensaje EXACTO con el link.",
+      parameters: {
+        type: "object",
+        properties: {
+          nombre: { type: "string" },
+          pais: { type: "string" },
+          notas: { type: "string", description: "resumen breve de su caso" },
+        },
+        required: [],
+      },
+    },
+  },
 ];
 
 const MODELO = process.env.OPENAI_MODEL || "gpt-4o-mini";
@@ -93,6 +110,7 @@ function construirSystemPrompt(contexto) {
     "   • Si responde que SÍ quiere cambiar en serio → presenta el club (paso 6).",
     `6) PRESENTA EL CLUB (usa este texto casi igual): "${guion.CLUB_PRESENTACION}"`,
     "   • Si responde que SÍ quiere entrar → llama a la herramienta enviar_club.",
+    "7) SI NO TIENE NI PARA EL CLUB ($34): si deja claro que no tiene nada de dinero, NO insistas — usa la herramienta enviar_video_gratis para mandarle un video gratis e invitarlo a seguir el canal, con buena onda.",
     "",
     `SI PREGUNTAN '¿cuánto necesito / cuánto cuesta / cuánto se invierte?': responde con este texto casi igual (y úsalo también para calificar el capital): "${guion.INVERSION}"`,
     "",
@@ -148,6 +166,7 @@ async function responder(mensajeUsuario, historial = [], meta = {}) {
         let resultado;
         if (tc.function.name === "agendar_llamada") resultado = acciones.agendarLlamada({ ...args, ...meta });
         else if (tc.function.name === "enviar_club") resultado = acciones.enviarClub({ ...args, ...meta });
+        else if (tc.function.name === "enviar_video_gratis") resultado = acciones.enviarVideoGratis({ ...args, ...meta });
         else resultado = { ok: false, motivo: "herramienta desconocida" };
 
         // El primer bloque final listo se envía tal cual (link exacto, sin paráfrasis).
