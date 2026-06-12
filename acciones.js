@@ -69,13 +69,19 @@ function registrarLead(lead, opciones = {}) {
 }
 
 // Rama CALIFICADA: agenda la llamada (Calendly).
+// Con más de $1.000 USD confirmados es PRIORIDAD ALTA (candidato a VIP) y se
+// entrega el bloque VIP. Premium/VIP se cierran en la reunión, nunca por chat.
 function agendarLlamada(lead = {}) {
   if (!pareceNombreValido(lead.nombre)) {
     return { ok: false, motivo: "No recibí el argumento 'nombre'. Si la persona YA te dio su nombre antes en la conversación, vuelve a llamar agendar_llamada incluyéndolo en 'nombre' (NO se lo preguntes otra vez). Pídeselo SOLO si de verdad nunca lo dio o si dio un apodo/saludo." };
   }
+  const esVip = Number(lead.capitalUSD) > 1000;
   // tabla:true → este SÍ va a la tabla del servicio 1:1.
-  registrarLead({ ...lead, rama: "llamada", evento: "agendar_llamada", ts: new Date().toISOString() }, { tabla: true });
-  return { ok: true, mensaje: guion.CALENDLY_BLOQUE };
+  registrarLead(
+    { ...lead, rama: "llamada", prioridad: esVip ? "alta_vip" : "normal", evento: "agendar_llamada", ts: new Date().toISOString() },
+    { tabla: true }
+  );
+  return { ok: true, mensaje: esVip ? guion.CALENDLY_BLOQUE_VIP : guion.CALENDLY_BLOQUE };
 }
 
 // Rama CLUB: entrega el club Upgrade Project (Skool, $34/mes).

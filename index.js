@@ -307,10 +307,13 @@ function detectarCapitalUSD(texto, pais) {
   return null;
 }
 
-// Rama de cierre según el capital (en USD). Mismos cortes que el prompt.
+// Rama de cierre según el capital (en USD). Mismos cortes que el prompt:
+//   > $1.000  → llamada VIP (prioridad alta, candidato a VIP)
+//   $600–1.000 → llamada (en la reunión se define Premium o VIP)
+//   < $600    → club
 function ramaPorCapital(usd) {
-  if (usd >= 850) return "llamada";
-  if (usd >= 600) return "resto";
+  if (usd > 1000) return "llamada_vip";
+  if (usd >= 600) return "llamada";
   return "club";
 }
 
@@ -322,6 +325,16 @@ const NO_NOMBRES = new Set([
   "de", "del", "la", "el", "un", "una", "desde", "muy", "mas",
   "interesado", "interesada", "nuevo", "nueva", "yo", "alguien",
   "estudiante", "emprendedor", "emprendedora",
+  // Ocupaciones comunes ("soy enfermera" NO es un nombre):
+  "enfermera", "enfermero", "doctor", "doctora", "medico", "medica",
+  "ingeniero", "ingeniera", "abogado", "abogada", "profesor", "profesora",
+  "maestro", "maestra", "mesero", "mesera", "vendedor", "vendedora",
+  "conductor", "conductora", "taxista", "comerciante", "contador",
+  "contadora", "policia", "militar", "soldado", "cocinero", "cocinera",
+  "chef", "barbero", "barbera", "estilista", "secretaria", "secretario",
+  "asistente", "independiente", "empleado", "empleada", "obrero", "obrera",
+  "agricultor", "agricultora", "desempleado", "desempleada", "freelancer",
+  "trabajador", "trabajadora", "tecnico", "tecnica", "operario", "operaria",
 ]);
 function detectarNombre(texto) {
   const t = normalizar(texto);
@@ -364,8 +377,10 @@ async function procesarMensaje(mensajeUsuario, sesion, meta = {}) {
   // asumimos quién es ni su género).
   const paisDetectado = detectarPais(mensajeUsuario);
   if (paisDetectado) sesion.pais = paisDetectado;
+  // El PRIMER nombre capturado manda: "soy enfermera" más adelante no debe
+  // pisar el nombre real que la persona ya dio.
   const nombreDetectado = detectarNombre(mensajeUsuario);
-  if (nombreDetectado) sesion.nombre = nombreDetectado;
+  if (nombreDetectado && !sesion.nombre) sesion.nombre = nombreDetectado;
   const capitalDetectado = detectarCapitalUSD(mensajeUsuario, sesion.pais);
   if (capitalDetectado != null) sesion.capitalUSD = capitalDetectado;
   if (!sesion.pais) {
@@ -413,7 +428,7 @@ async function procesarMensaje(mensajeUsuario, sesion, meta = {}) {
     // con el link; respondemos algo corto de confirmación. Así no spameamos el
     // mismo link cuando la persona dice "listo", "ya", etc.
     const tipoCierre =
-      respuestaLLM === guion.CALENDLY_BLOQUE ? "llamada" :
+      respuestaLLM === guion.CALENDLY_BLOQUE || respuestaLLM === guion.CALENDLY_BLOQUE_VIP ? "llamada" :
       respuestaLLM === guion.CLUB_BLOQUE ? "club" :
       respuestaLLM === guion.VIDEO_GRATIS ? "video" : null;
 

@@ -76,9 +76,9 @@ const TOOLS = [
 const MODELO = process.env.OPENAI_MODEL || "gpt-4o-mini";
 const BASE_URL = process.env.OPENAI_BASE_URL || undefined;
 
-// Capital (USD) a partir del cual la persona califica para la LLAMADA. El umbral
-// real es ~$900; usamos $850 de margen porque la conversión de moneda es aprox.
-const CAPITAL_USD_MIN_LLAMADA = 850;
+// Capital (USD) a partir del cual la persona califica para la LLAMADA.
+// Desde el flujo Premium/VIP: con $600 o más SIEMPRE se agenda reunión.
+const CAPITAL_USD_MIN_LLAMADA = 600;
 
 // Estima el capital en USD que el modelo declaró en su texto (para la red de
 // seguridad de la escalera de capital). Prioriza "te faltan ~$X" → 1.000 - X;
@@ -130,10 +130,10 @@ function construirSystemPrompt(contexto, meta = {}) {
       ? [`DATO YA CONFIRMADO: la persona se llama ${meta.nombre}. NO le vuelvas a preguntar el nombre. Úsalo con naturalidad en la conversación, adapta el género de tus palabras a ese nombre y pásalo SIEMPRE en el argumento 'nombre' de las herramientas.`, ""]
       : []),
     ...(meta && meta.capitalUSD != null && meta.rama === "llamada"
-      ? [`DATO YA CONFIRMADO (calculado por el sistema, NO lo recalcules tú): su capital ≈ $${meta.capitalUSD} USD → CALIFICA para la LLAMADA. NO vuelvas a preguntar el capital ni lo conviertas tú. PROHIBIDO mencionarle el club, Skool, los $34 o el '1k a 3k al mes'. Su ÚNICO cierre es agendar_llamada: si aún no entregaste el link de Calendly, LLAMA agendar_llamada YA, en este mismo turno.`, ""]
+      ? [`DATO YA CONFIRMADO (calculado por el sistema, NO lo recalcules tú): su capital ≈ $${meta.capitalUSD} USD → CALIFICA para la REUNIÓN (en ella se define Premium o VIP). NO vuelvas a preguntar el capital ni lo conviertas tú. PROHIBIDO mencionarle el club, Skool, los $34 o el '1k a 3k al mes', y PROHIBIDO decirle 'te falta'. Su ÚNICO cierre es agendar_llamada: si aún no entregaste el link de Calendly, LLAMA agendar_llamada YA, en este mismo turno.`, ""]
       : []),
-    ...(meta && meta.capitalUSD != null && meta.rama === "resto"
-      ? [`DATO YA CONFIRMADO (calculado por el sistema, NO lo recalcules tú): su capital ≈ $${meta.capitalUSD} USD → tramo 'CONSIGUE EL RESTO' (le faltan ~$${1000 - meta.capitalUSD} para los $1.000). NO vuelvas a preguntar el capital. Empújalo a completar lo que falta; si dice que SÍ lo consigue → agendar_llamada; si NO puede → puente al club (paso 5).`, ""]
+    ...(meta && meta.capitalUSD != null && meta.rama === "llamada_vip"
+      ? [`DATO YA CONFIRMADO (calculado por el sistema, NO lo recalcules tú): su capital ≈ $${meta.capitalUSD} USD → PRIORIDAD ALTA, candidato a VIP. NO vuelvas a preguntar el capital. PROHIBIDO mencionarle el club, Skool o los $34. Su ÚNICO cierre es agendar_llamada: si aún no entregaste el link de Calendly, LLAMA agendar_llamada YA, en este mismo turno (la herramienta entrega el mensaje VIP).`, ""]
       : []),
     ...(meta && meta.capitalUSD != null && meta.rama === "club"
       ? [`DATO YA CONFIRMADO (calculado por el sistema, NO lo recalcules tú): su capital ≈ $${meta.capitalUSD} USD → rama CLUB. NO vuelvas a preguntar el capital. NO le ofrezcas la llamada con el equipo ni Calendly: su camino es el PUENTE (paso 5) y el club Upgrade Project ($34) con enviar_club.`, ""]
@@ -148,7 +148,7 @@ function construirSystemPrompt(contexto, meta = {}) {
     "   • SOLO cuando ya tengas PAÍS y NOMBRE pasas al paso 2. El país lo necesitas para el cierre del club (pago sin tarjeta), así que consíguelo aquí, nunca después.",
     `2) ABRIR (usa este texto casi igual, abriendo con su nombre, ej. '¡Listo, Camila!'): "${guion.ABRIR_CALIFICACION}"`,
     "3) CALIFICA según lo que responda. Primero reacciona BREVE y natural a lo que te dijo (su ocupación), SIN asumir ni inventar cosas que no dijo: NO digas 'me alegra que te guste el contenido' ni des por hecho que vio tus videos o tu Instagram (puede venir de la landing). Luego pregunta UNA cosa por mensaje:",
-    "   • Si TRABAJA / tiene un oficio, haz estas preguntas EN ORDEN y TAL CUAL están escritas (puedes anteponer una reacción breve, pero la pregunta va LITERAL: NO la reescribas, NO le incrustes la meta/respuesta de la persona dentro de la pregunta, NO mezcles dos preguntas en una): 1. '¿Qué te llamó la atención del dropshipping?' → 2. '¿Qué te gustaría lograr con esto?' → 3. '¿Por qué crees que no lo has logrado aún?' → 4. '¿Con cuánto capital cuentas hoy para invertir en tu tienda?'",
+    `   • Si TRABAJA / tiene un oficio, haz estas preguntas EN ORDEN y TAL CUAL están escritas (puedes anteponer una reacción breve, pero la pregunta va LITERAL: NO la reescribas, NO le incrustes la meta/respuesta de la persona dentro de la pregunta, NO mezcles dos preguntas en una): 1. '¿Qué te llamó la atención del dropshipping?' → 2. '¿Qué te gustaría lograr con esto?' → 3. '¿Por qué crees que no lo has logrado aún?' → 4. '${guion.PREGUNTA_CAPITAL}'`,
     "   • Si ESTUDIA o NO trabaja: pregunta '¿Tienes algún ingreso fijo o dependes totalmente de otra persona?' → si depende de alguien: '¿Con cuánto podrías contar para empezar sin presión?'",
     "",
     "   ── CONVIERTE LA MONEDA A USD ANTES DE DECIDIR ──",
@@ -156,11 +156,13 @@ function construirSystemPrompt(contexto, meta = {}) {
     "",
     "⚠️ EJECUTA LA HERRAMIENTA, NO LA ANUNCIES: cuando la persona califica y acepta (o acepta el club, o no tiene nada), LLAMA la herramienta correspondiente EN ESE MISMO TURNO. NUNCA escribas en texto 'voy a agendar', 'te voy a enviar', 'dame un segundo' o 'el equipo te contactará': eso NO entrega el link y la persona se queda colgada. El link SOLO sale si llamas la herramienta. Ante la duda entre escribir o llamar la herramienta → llama la herramienta. TÚ NO PUEDES AGENDAR NI ENVIAR NADA 'DESPUÉS': no existe 'yo te agendo', 'voy a hacerlo ahora' ni 'un segundo'. La persona agenda SOLA con el link de Calendly que entrega la herramienta, en ESTE turno.",
     "⚠️ AL LLAMAR CUALQUIER HERRAMIENTA, SIEMPRE incluye el argumento `nombre` (el nombre real que la persona YA te dio) y `pais`. Si ya tienes el nombre de antes en la conversación, JAMÁS se lo vuelvas a pedir 'para agendar': pásalo directo en el argumento. Pedir de nuevo un dato que ya diste se siente robótico.",
-    "4) RAMIFICA POR CAPITAL (en USD ya convertido) — TRES tramos. OJO: a partir de ~$850-900 es LLAMADA, NO club:",
-    "   • ≥ $850 USD → llama a la herramienta agendar_llamada SIEMPRE. IMPORTANTE: aunque a veces digamos que el mínimo 'ideal' son $1.000, a partir de ~$850-900 YA se agenda la llamada (lo demás se afina ahí). A alguien con $850 o más NUNCA le digas 'te falta' ni lo mandes a 'consigue el resto': eso es SOLO para quien tiene claramente menos. (Ej: '$1000 dólares', '18.000 MXN'≈$1.000, '3.400 soles'≈$920 → LLAMADA directa.) No redondees hacia abajo para descalificarlo.",
-    "   • RAMA LLAMADA = NADA DE CLUB: a quien calificó para la llamada (≥ ~$850) NUNCA le hables del club, de Skool, de los $34 ni del '1k a 3k al mes'. Eso es SOLO para quien NO califica. Si después de recibir el link de Calendly pregunta '¿de qué trata todo?', '¿qué veremos en la reunión?' o quiere que le expliques antes de agendar: explícale BREVE (2-3 líneas) que la reunión es para presentarle la opción PERSONALIZADA o SEMIPERSONALIZADA de acompañamiento: el equipo revisa su situación, su capital y sus metas, le muestra cómo funciona el proceso completo (tienda, producto ganador, publicidad) y le arma el plan a su medida; los detalles y números exactos se ven ahí mismo. Cierra reencauzando: que agende y en la reunión le explican absolutamente todo.",
-    `   • $600–840 USD (claramente por debajo) → 'CONSIGUE EL RESTO': dile cuánto le falta EXACTO para los $1.000 (ej. con $700 → 'te faltan ~$300') y empújalo a completarlo. Base: "${guion.CONSEGUIR_RESTO}" → si dice que SÍ los consigue/llega a $1.000 → agendar_llamada. → si dice que NO puede → cae al PUENTE del club (paso 5). OJO: a este tramo SOLO se entra con una CIFRA que la persona DIJO (o confirmada por el sistema arriba). Si NO te ha dicho cuánto tiene, JAMÁS digas 'te faltan $X' (sería inventado).`,
-    "   • < $600 USD → ve al PUENTE (paso 5).",
+    "4) RAMIFICA POR CAPITAL (en USD ya convertido) — TRES tramos. Premium y VIP JAMÁS se venden ni cotizan por chat: SIEMPRE se cierran en la reunión:",
+    "   • MÁS de $1.000 USD → PRIORIDAD ALTA (candidato a VIP): llama a la herramienta agendar_llamada YA, en este mismo turno. En la reunión se define Premium o VIP, con foco en VIP.",
+    "   • Entre $600 y $1.000 USD → llama a la herramienta agendar_llamada. En la reunión el equipo define si se le presenta Premium o VIP. A alguien con $600 o más NUNCA le digas 'te falta' ni lo mandes a conseguir más plata: con eso YA se agenda. No redondees hacia abajo para descalificarlo.",
+    "   • Menos de $600 USD → ve al PUENTE del club (paso 5).",
+    "   • NUNCA digas 'te faltan $X': ese tramo ya no existe. Con $600+ se agenda; con menos, club.",
+    "   • Si la persona DUDA o no se decide ('no sé', 'déjame pensarlo', 'tengo que verlo') y su capital es ≥ $600 o aún no lo ha dicho: ofrécele agendar una llamada CORTA con el equipo para resolverlo — mejor pecar de agendar que perder al prospecto.",
+    "   • RAMA LLAMADA = NADA DE CLUB: a quien calificó para la reunión (≥ $600) NUNCA le hables del club, de Skool, de los $34 ni del '1k a 3k al mes'. Eso es SOLO para quien NO califica. Si después de recibir el link de Calendly pregunta '¿de qué trata todo?', '¿qué veremos en la reunión?' o quiere que le expliques antes de agendar: explícale BREVE (2-3 líneas) que la reunión es para presentarle la opción PERSONALIZADA o SEMIPERSONALIZADA de acompañamiento (Premium o VIP, según su caso): el equipo revisa su situación, su capital y sus metas, le muestra cómo funciona el proceso completo (tienda, producto ganador, publicidad) y le arma el plan a su medida; los detalles y números exactos se ven ahí mismo. Cierra reencauzando: que agende y en la reunión le explican absolutamente todo.",
     `5) PUENTE AL CLUB (usa este texto casi igual): "${guion.PUENTE_CLUB}"`,
     "   • Si responde que SÍ quiere cambiar en serio → presenta el club (paso 6).",
     `6) PRESENTA EL CLUB (usa este texto casi igual): "${guion.CLUB_PRESENTACION}"`,
@@ -183,7 +185,7 @@ function construirSystemPrompt(contexto, meta = {}) {
     "2. Cuando una herramienta te devuelva un 'mensaje', ese mensaje se le envía a la persona TAL CUAL (no lo cambies, no lo resumas).",
     "3. NO inventes datos, links, precios ni promesas de ingresos como seguras. Hablas de casos reales y de lo que entregas, no de garantías.",
     "3b. NUNCA escribas tú mismo un link de calendly.com ni de skool.com: NO los tienes en memoria, cualquiera que escribas será FALSO y el cliente no podrá agendar/entrar. Esos links SOLO los entrega la herramienta (agendar_llamada / enviar_club). Para dar el link, LLAMA la herramienta.",
-    "4. NO des el precio del programa grande (eso es en la llamada). El único precio que dices es el del club: $34 USD/mes. El mínimo para empezar por cuenta propia es $1,000 USD.",
+    "4. Premium y VIP NO se venden ni se cotizan por chat: SIEMPRE se cierran en la reunión. El único precio que ofreces tú es el del club: $34 USD/mes. El precio del Premium ($1.500 USD) SOLO lo dices si la persona lo pregunta DIRECTAMENTE; el del VIP ($2.500 USD) SOLO si lo pregunta DIRECTAMENTE. Aunque los digas, NO los vendas por chat: reencauza a la reunión.",
     "5. Para OBJECIONES usa el guion EXACTO de la sección OBJECIONES de arriba (no el CONTEXTO): identifica cuál aplica, valida y reencauza al cierre.",
     "6. Responde en español. Si piden hablar con un humano, recuérdales que ya estás tú (Brayan) y sigue el flujo.",
     "7. UNA VEZ que ya entregaste el cierre (el link de Calendly o del club), NO lo vuelvas a mandar. Si la persona confirma ('listo', 'ya', 'dale', 'agendé'), responde CORTO y con ánimo (ej.: '¡De una! Avísame cuando agendes') SIN repetir el link ni el bloque completo.",
@@ -321,7 +323,7 @@ async function responder(mensajeUsuario, historial = [], meta = {}) {
     // CALIFICA para la llamada y aun así el modelo le menciona el club/Skool/
     // los $34, forzamos agendar_llamada: a un calificado JAMÁS se le vende el
     // club barato.
-    if (texto && meta.rama === "llamada" && /club|skool|\$ ?34|34 ?(usd|d[oó]lares)|1k a 3k|mirando opciones|forma tradicional|con ese capital s[ií] puedes/i.test(texto)) {
+    if (texto && /^llamada/.test(meta.rama || "") && /club|skool|\$ ?34|34 ?(usd|d[oó]lares)|1k a 3k|mirando opciones|forma tradicional|con ese capital s[ií] puedes|te faltan?\b/i.test(texto)) {
       const directo = await forzarHerramienta(api, opciones, "agendar_llamada", meta);
       if (directo) return directo;
       return guion.CALENDLY_BLOQUE;

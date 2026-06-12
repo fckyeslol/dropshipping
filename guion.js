@@ -59,10 +59,9 @@ const INVERSION =
   "3. Las *plataformas y herramientas* de tu tienda: la página donde vendes, el dominio y las apps con las que vas a trabajar y capitalizar tu empresa.\n\n" +
   "El mínimo para iniciar son *$1,000 dólares*. ¿Contarías con eso?";
 
-// ── Tramo "casi califica" ($600–899 USD): empujar a completar los $1.000 ──
-// El prompt le dice a Brayan cuánto le falta exactamente; este texto es la base.
-const CONSEGUIR_RESTO =
-  "Estás cerca, bro. El mínimo para arrancar bien por tu cuenta son *$1,000 USD*; te falta poquito para completarlo.\n\n¿Cómo podrías conseguir lo que falta? Un ahorro, alguien que te dé la mano, vender algo que ya no uses… dime y lo armamos para que arranques en serio.";
+// ── Pregunta de calificación por capital (la hace el bot, no espera a que salga) ──
+const PREGUNTA_CAPITAL =
+  "Para recomendarte el camino correcto y no hacerte perder el tiempo, cuéntame: ¿con cuánto capital cuentas aproximadamente para invertir y arrancar tu negocio?";
 
 // ── Sin tarjeta y ES de Colombia: sacar la tarjeta Nequi (gratis) + video ──
 const PAGAR_NEQUI =
@@ -76,19 +75,25 @@ const PEDIR_FAMILIAR =
 
 // ── /inicio — puente al club cuando NO cuenta con el capital ──
 const PUENTE_CLUB =
-  "Uf bro, te hablo claro: con ese capital sí puedes empezar, y lo bueno es que no de la forma tradicional que la mayoría intenta y donde casi todos fallan. Cuando se tiene poco capital, lo que necesitas es estrategia y guía; si no, ese dinero se va rápido y sigues igual.\n\nEstas opciones no se las muestro a cualquiera. Prefiero personas decididas, con hambre de avanzar, no gente que entra por emoción y abandona.\n\nEntonces dime con sinceridad: ¿de verdad quieres cambiar tu situación y empezar en serio, o solo estás mirando opciones?";
+  "Uf bro, te hablo claro: con ese capital sí puedes empezar, y lo bueno es que no de la forma tradicional que la mayoría intenta y donde casi todos fallan. Cuando se tiene poco capital, lo que necesitas es estrategia y guía; si no, ese dinero se va rápido y sigues igual.\n\nEstas opciones no se las muestro a cualquiera. Prefiero personas decididas, con hambre de avanzar, no gente que entra por emoción y abandona. Porque afuera pocos te van a mostrar una ruta real para tu situación.\n\nEntonces dime con sinceridad: ¿de verdad quieres cambiar tu situación y empezar en serio, o solo estás mirando opciones?";
 
 // ── /club2presentacion — presenta el club (cuando dice que sí al puente) ──
 const CLUB_PRESENTACION =
   "¡Buenísimo que me digas eso! Te cuento: dentro de mi club *Upgrade Project* te doy todas las herramientas para empezar desde cero y generar de *1k a 3k USD al mes*, porque te comparto todo el proceso que sigo en mis tiendas actuales: anuncios en TikTok y Facebook, diseño de página, cómo entregar los productos, cómo encontrar productos ganadores, cómo crear marca personal y, lo más importante, todo para que arranques a vender.\n\nTambién tienes la posibilidad de una llamada 1:1 conmigo si eres de quienes más aplican dentro del club.\n\n*Mi programa tiene un valor de $34 USD mensual.*\n\nEsto es un programa exclusivo y privado, donde doy información de mis programas de 2 mil dólares por este precio. Así que no me arriesgo a enseñárselo a alguien que no esté listo para dar ese paso.\n\nEntonces bro, ¿quieres aprovechar esta única oportunidad?";
 
-// ── BLOQUE FINAL: agendar llamada (rama >= $1,000) — lo entrega la herramienta ──
+// ── BLOQUE FINAL: agendar llamada ($600–$1.000) — lo entrega la herramienta ──
 const CALENDLY_BLOQUE =
   "Excelente. Mira, no me gusta explicarte todo por aquí porque se pierde mucha información, y lo importante es que aprendas a manejar todo.\n\n¿Qué te parece si agendamos una reunión con el equipo y te explicamos todo por dentro?\n\n" +
   CALENDLY_LINK +
   "\n\nAgendas por ahí; el equipo te va a explicar absolutamente todo el proceso y así tienes todo mucho más claro.\n\nAvísame cuando agendes para confirmar.";
 
-// ── BLOQUE FINAL: entrar al club (rama < $1,000) — lo entrega la herramienta ──
+// ── BLOQUE FINAL VIP: agendar llamada (más de $1.000, prioridad alta) ──
+const CALENDLY_BLOQUE_VIP =
+  "Con lo que tienes para arrancar, definitivamente vale la pena una llamada para armarte el plan correcto y que aproveches al máximo.\n\nTe paso el link para que agendemos:\n\n" +
+  CALENDLY_LINK +
+  "\n\n¿Te queda mejor hoy o mañana?";
+
+// ── BLOQUE FINAL: entrar al club (menos de $600) — lo entrega la herramienta ──
 const CLUB_BLOQUE =
   "Brooo, vamos a romperla durísimo.\n\nIngresa aquí: " +
   SKOOL_LINK +
@@ -136,12 +141,13 @@ module.exports = {
   PRUEBAS,
   ABRIR_CALIFICACION,
   INVERSION,
-  CONSEGUIR_RESTO,
+  PREGUNTA_CAPITAL,
   PAGAR_NEQUI,
   PEDIR_FAMILIAR,
   PUENTE_CLUB,
   CLUB_PRESENTACION,
   CALENDLY_BLOQUE,
+  CALENDLY_BLOQUE_VIP,
   CLUB_BLOQUE,
   VIDEO_GRATIS,
   OBJECIONES,
