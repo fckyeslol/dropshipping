@@ -237,6 +237,83 @@ function detectarPais(texto) {
   return null;
 }
 
+// ───────── Capital: conversión a USD DETERMINÍSTICA ─────────
+// El LLM convierte mal las monedas y a veces rutea a la rama equivocada.
+// Aquí detectamos el monto + moneda en el mensaje, lo convertimos a USD con
+// tasas aproximadas (basta para rutear) y decidimos la RAMA en código.
+// Tasas: unidades de moneda local por 1 USD.
+const MONEDAS = [
+  { re: "d[oó]lar(?:es)?|usd|dolares", porUSD: 1 },
+  { re: "bolivianos?", porUSD: 7 },
+  { re: "soles?", porUSD: 3.7 },
+  { re: "reales?", porUSD: 5 },
+  { re: "euros?", porUSD: 0.9 },
+  { re: "quetzales?", porUSD: 7.7 },
+  { re: "lempiras?", porUSD: 24.7 },
+  { re: "cordobas?", porUSD: 36.5 },
+  { re: "colones?", porUSD: 520 },
+  { re: "guaranies?", porUSD: 7300 },
+  { re: "pesos?\\s+colombianos?", porUSD: 4000 },
+  { re: "pesos?\\s+mexicanos?", porUSD: 18 },
+  { re: "pesos?\\s+argentinos?", porUSD: 1000 },
+  { re: "pesos?\\s+chilenos?", porUSD: 950 },
+  { re: "pesos?\\s+dominicanos?", porUSD: 58 },
+  { re: "pesos?\\s+uruguayos?", porUSD: 40 },
+  { re: "pesos?", porUSD: null }, // genérico: se resuelve por el país
+];
+const PESOS_POR_PAIS = {
+  Colombia: 4000, "México": 18, Argentina: 1000, Chile: 950,
+  Uruguay: 40, "República Dominicana": 58,
+};
+
+// "6.000" / "6,000" → 6000 ; "1,5" → 1.5
+function parseNumero(s) {
+  const limpio = String(s).replace(/\s/g, "");
+  if (/^\d{1,3}([.,]\d{3})+$/.test(limpio)) return Number(limpio.replace(/[.,]/g, ""));
+  return Number(limpio.replace(",", "."));
+}
+
+// Devuelve el capital en USD aprox o null si el mensaje no trae un monto claro.
+// NO se dispara sobre METAS ("quiero ganar 2000 al mes"), solo sobre capital.
+function detectarCapitalUSD(texto, pais) {
+  const t = normalizar(texto);
+  if (/(ganar|generar|facturar|lograr|llegar a)\b/.test(t)) return null;
+  if (/al mes|mensual|por mes|a la semana|al dia|diarios?/.test(t)) return null;
+
+  const MULT = { mil: 1000, millon: 1e6, millones: 1e6, k: 1000 };
+  for (const m of MONEDAS) {
+    const re = new RegExp("(\\d[\\d.,]*)\\s*(mil|millon(?:es)?|k)?\\s*(?:de\\s+)?(?:" + m.re + ")([^a-z]|$)");
+    const hit = t.match(re);
+    if (!hit) continue;
+    let monto = parseNumero(hit[1]);
+    if (hit[2]) monto *= MULT[hit[2]] || 1;
+    let tasa = m.porUSD;
+    if (tasa === null) tasa = PESOS_POR_PAIS[pais] || null; // "pesos" a secas
+    if (!tasa || Number.isNaN(monto) || monto <= 0) continue;
+    return monto / tasa;
+  }
+
+  // "$700" / "tengo 2 millones" sin moneda explícita: usa la moneda del país.
+  const generico = t.match(/\$?\s*(\d[\d.,]*)\s*(mil|millon(?:es)?|k)\b/) || t.match(/\$\s*(\d[\d.,]*)/);
+  if (generico) {
+    let monto = parseNumero(generico[1]);
+    if (generico[2]) monto *= MULT[generico[2]] || 1;
+    if (Number.isNaN(monto) || monto <= 0) return null;
+    // Montos chicos con "$" se leen como USD; montos grandes, en moneda local.
+    if (monto <= 20000) return monto;
+    const tasa = PESOS_POR_PAIS[pais];
+    return tasa ? monto / tasa : null;
+  }
+  return null;
+}
+
+// Rama de cierre según el capital (en USD). Mismos cortes que el prompt.
+function ramaPorCapital(usd) {
+  if (usd >= 850) return "llamada";
+  if (usd >= 600) return "resto";
+  return "club";
+}
+
 // Detección de nombre CONSERVADORA: solo patrones explícitos ("me llamo Juan",
 // "mi nombre es Ana", "soy Pedro"). Si no hay patrón claro NO asume nombre
 // (el LLM lo pide después). Sirve para que el gate del país no vuelva a pedir
@@ -276,6 +353,7 @@ async function procesarMensaje(mensajeUsuario, sesion, meta = {}) {
     sesion.historial = [];
     sesion.pais = null; // reinicia el gate del país
     sesion.nombre = null; // reinicia el nombre capturado
+    sesion.capitalUSD = null; // reinicia el capital capturado
     return saludoResp();
   }
 
@@ -288,6 +366,8 @@ async function procesarMensaje(mensajeUsuario, sesion, meta = {}) {
   if (paisDetectado) sesion.pais = paisDetectado;
   const nombreDetectado = detectarNombre(mensajeUsuario);
   if (nombreDetectado) sesion.nombre = nombreDetectado;
+  const capitalDetectado = detectarCapitalUSD(mensajeUsuario, sesion.pais);
+  if (capitalDetectado != null) sesion.capitalUSD = capitalDetectado;
   if (!sesion.pais) {
     // Si ya preguntamos el país y la respuesta no se reconoció (p. ej. una
     // ciudad que no está en LUGARES), repreguntamos con otra frase en vez de
@@ -322,6 +402,10 @@ async function procesarMensaje(mensajeUsuario, sesion, meta = {}) {
   // pisaría el nombre que el LLM manda en los argumentos de las herramientas.
   const metaLLM = { ...meta, pais: sesion.pais };
   if (sesion.nombre) metaLLM.nombre = sesion.nombre;
+  if (sesion.capitalUSD != null) {
+    metaLLM.capitalUSD = Math.round(sesion.capitalUSD);
+    metaLLM.rama = ramaPorCapital(sesion.capitalUSD);
+  }
   let respuestaLLM = await llm.responder(mensajeUsuario, sesion.historial, metaLLM);
   if (respuestaLLM) {
     // Anti-repetición del CIERRE: si el bot ya entregó un bloque de cierre
@@ -473,4 +557,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { app, procesarMensaje };
+module.exports = { app, procesarMensaje, detectarCapitalUSD, ramaPorCapital };

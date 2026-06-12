@@ -129,6 +129,15 @@ function construirSystemPrompt(contexto, meta = {}) {
     ...(meta && meta.nombre
       ? [`DATO YA CONFIRMADO: la persona se llama ${meta.nombre}. NO le vuelvas a preguntar el nombre. Úsalo con naturalidad en la conversación, adapta el género de tus palabras a ese nombre y pásalo SIEMPRE en el argumento 'nombre' de las herramientas.`, ""]
       : []),
+    ...(meta && meta.capitalUSD != null && meta.rama === "llamada"
+      ? [`DATO YA CONFIRMADO (calculado por el sistema, NO lo recalcules tú): su capital ≈ $${meta.capitalUSD} USD → CALIFICA para la LLAMADA. NO vuelvas a preguntar el capital ni lo conviertas tú. PROHIBIDO mencionarle el club, Skool, los $34 o el '1k a 3k al mes'. Su ÚNICO cierre es agendar_llamada: si aún no entregaste el link de Calendly, LLAMA agendar_llamada YA, en este mismo turno.`, ""]
+      : []),
+    ...(meta && meta.capitalUSD != null && meta.rama === "resto"
+      ? [`DATO YA CONFIRMADO (calculado por el sistema, NO lo recalcules tú): su capital ≈ $${meta.capitalUSD} USD → tramo 'CONSIGUE EL RESTO' (le faltan ~$${1000 - meta.capitalUSD} para los $1.000). NO vuelvas a preguntar el capital. Empújalo a completar lo que falta; si dice que SÍ lo consigue → agendar_llamada; si NO puede → puente al club (paso 5).`, ""]
+      : []),
+    ...(meta && meta.capitalUSD != null && meta.rama === "club"
+      ? [`DATO YA CONFIRMADO (calculado por el sistema, NO lo recalcules tú): su capital ≈ $${meta.capitalUSD} USD → rama CLUB. NO vuelvas a preguntar el capital. NO le ofrezcas la llamada con el equipo ni Calendly: su camino es el PUENTE (paso 5) y el club Upgrade Project ($34) con enviar_club.`, ""]
+      : []),
     "═══ FLUJO QUE SIGUES (paso a paso, con naturalidad, una pregunta por mensaje) ═══",
     "⚠️ AVANZA, NUNCA RETROCEDAS: no repitas el saludo ni preguntas ya respondidas (ocupación, qué le llamó la atención, qué quiere lograr, capital). Mira el historial: si un dato ya lo tienes, NO lo vuelvas a preguntar. Si la persona da una respuesta vaga o se sale del tema, NO reinicies la calificación: reencáuzala con calidez hacia el SIGUIENTE paso pendiente y hacia el CIERRE (agendar la llamada o entrar al club).",
     "⚠️ EXCEPCIÓN (manda sobre la regla de avanzar): el PAÍS y el NOMBRE (paso 1) son requisito de ENTRADA. Si te FALTA el país (o el nombre), pedirlo NO es retroceder: es OBLIGATORIO y va PRIMERO, antes de la ocupación y de cualquier otra cosa, AUNQUE la persona ya quiera hablar de dropshipping o de empezar. 'Vengo de la landing/Instagram' no es un país.",
@@ -143,7 +152,7 @@ function construirSystemPrompt(contexto, meta = {}) {
     "   • Si ESTUDIA o NO trabaja: pregunta '¿Tienes algún ingreso fijo o dependes totalmente de otra persona?' → si depende de alguien: '¿Con cuánto podrías contar para empezar sin presión?'",
     "",
     "   ── CONVIERTE LA MONEDA A USD ANTES DE DECIDIR ──",
-    "   Si te dan el capital en moneda local, conviértelo a USD aprox y decide con ESE valor (lo aproximado basta para rutear). Referencias: 1 USD ≈ 4.000 COP, ~18 MXN, ~1.000 ARS, ~3,7 PEN, ~950 CLP, ~5 BRL, ~40 UYU. Ej: 18.000 MXN ≈ $1.000 USD → llamada.",
+    "   Si te dan el capital en moneda local, conviértelo a USD aprox y decide con ESE valor (lo aproximado basta para rutear). Referencias: 1 USD ≈ 4.000 COP, ~18 MXN, ~1.000 ARS, ~3,7 PEN, ~950 CLP, ~5 BRL, ~40 UYU, ~7 BOB (bolivianos). Ej: 18.000 MXN ≈ $1.000 USD → llamada; 6.000 BOB ≈ $860 → llamada. Si arriba hay un 'DATO YA CONFIRMADO' con el capital en USD, ese valor MANDA: úsalo tal cual y no calcules nada.",
     "",
     "⚠️ EJECUTA LA HERRAMIENTA, NO LA ANUNCIES: cuando la persona califica y acepta (o acepta el club, o no tiene nada), LLAMA la herramienta correspondiente EN ESE MISMO TURNO. NUNCA escribas en texto 'voy a agendar', 'te voy a enviar', 'dame un segundo' o 'el equipo te contactará': eso NO entrega el link y la persona se queda colgada. El link SOLO sale si llamas la herramienta. Ante la duda entre escribir o llamar la herramienta → llama la herramienta. TÚ NO PUEDES AGENDAR NI ENVIAR NADA 'DESPUÉS': no existe 'yo te agendo', 'voy a hacerlo ahora' ni 'un segundo'. La persona agenda SOLA con el link de Calendly que entrega la herramienta, en ESTE turno.",
     "⚠️ AL LLAMAR CUALQUIER HERRAMIENTA, SIEMPRE incluye el argumento `nombre` (el nombre real que la persona YA te dio) y `pais`. Si ya tienes el nombre de antes en la conversación, JAMÁS se lo vuelvas a pedir 'para agendar': pásalo directo en el argumento. Pedir de nuevo un dato que ya diste se siente robótico.",
@@ -304,6 +313,17 @@ async function responder(mensajeUsuario, historial = [], meta = {}) {
       texto = texto
         .replace(/https?:\/\/(www\.)?calendly\.com\/\S+/gi, guion.CALENDLY_LINK)
         .replace(/https?:\/\/(www\.)?skool\.com\/\S+/gi, guion.SKOOL_LINK);
+    }
+
+    // ── RED DE SEGURIDAD por rama (determinística) ──
+    // El capital ya se convirtió y ruteó en código (index.js). Si la persona
+    // CALIFICA para la llamada y aun así el modelo le menciona el club/Skool/
+    // los $34, forzamos agendar_llamada: a un calificado JAMÁS se le vende el
+    // club barato.
+    if (texto && meta.rama === "llamada" && /club|skool|\$ ?34|34 ?(usd|d[oó]lares)|1k a 3k|mirando opciones|forma tradicional|con ese capital s[ií] puedes/i.test(texto)) {
+      const directo = await forzarHerramienta(api, opciones, "agendar_llamada", meta);
+      if (directo) return directo;
+      return guion.CALENDLY_BLOQUE;
     }
 
     // ── RED DE SEGURIDAD anti-anuncio ──
