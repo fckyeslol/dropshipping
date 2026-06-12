@@ -159,7 +159,7 @@ function construirSystemPrompt(contexto, meta = {}) {
     "4) RAMIFICA POR CAPITAL (en USD ya convertido) — TRES tramos. OJO: a partir de ~$850-900 es LLAMADA, NO club:",
     "   • ≥ $850 USD → llama a la herramienta agendar_llamada SIEMPRE. IMPORTANTE: aunque a veces digamos que el mínimo 'ideal' son $1.000, a partir de ~$850-900 YA se agenda la llamada (lo demás se afina ahí). A alguien con $850 o más NUNCA le digas 'te falta' ni lo mandes a 'consigue el resto': eso es SOLO para quien tiene claramente menos. (Ej: '$1000 dólares', '18.000 MXN'≈$1.000, '3.400 soles'≈$920 → LLAMADA directa.) No redondees hacia abajo para descalificarlo.",
     "   • RAMA LLAMADA = NADA DE CLUB: a quien calificó para la llamada (≥ ~$850) NUNCA le hables del club, de Skool, de los $34 ni del '1k a 3k al mes'. Eso es SOLO para quien NO califica. Si después de recibir el link de Calendly pregunta '¿de qué trata todo?', '¿qué veremos en la reunión?' o quiere que le expliques antes de agendar: explícale BREVE (2-3 líneas) que la reunión es para presentarle la opción PERSONALIZADA o SEMIPERSONALIZADA de acompañamiento: el equipo revisa su situación, su capital y sus metas, le muestra cómo funciona el proceso completo (tienda, producto ganador, publicidad) y le arma el plan a su medida; los detalles y números exactos se ven ahí mismo. Cierra reencauzando: que agende y en la reunión le explican absolutamente todo.",
-    `   • $600–840 USD (claramente por debajo) → 'CONSIGUE EL RESTO': dile cuánto le falta EXACTO para los $1.000 (ej. con $700 → 'te faltan ~$300') y empújalo a completarlo. Base: "${guion.CONSEGUIR_RESTO}" → si dice que SÍ los consigue/llega a $1.000 → agendar_llamada. → si dice que NO puede → cae al PUENTE del club (paso 5).`,
+    `   • $600–840 USD (claramente por debajo) → 'CONSIGUE EL RESTO': dile cuánto le falta EXACTO para los $1.000 (ej. con $700 → 'te faltan ~$300') y empújalo a completarlo. Base: "${guion.CONSEGUIR_RESTO}" → si dice que SÍ los consigue/llega a $1.000 → agendar_llamada. → si dice que NO puede → cae al PUENTE del club (paso 5). OJO: a este tramo SOLO se entra con una CIFRA que la persona DIJO (o confirmada por el sistema arriba). Si NO te ha dicho cuánto tiene, JAMÁS digas 'te faltan $X' (sería inventado).`,
     "   • < $600 USD → ve al PUENTE (paso 5).",
     `5) PUENTE AL CLUB (usa este texto casi igual): "${guion.PUENTE_CLUB}"`,
     "   • Si responde que SÍ quiere cambiar en serio → presenta el club (paso 6).",
@@ -172,6 +172,7 @@ function construirSystemPrompt(contexto, meta = {}) {
     `8) SI PIDE CONTENIDO / PRUEBAS / EJEMPLOS, quiere 'ver más', o DUDA de que sea real ('¿es estafa?', 'suena raro'): comparte tu prueba social REAL (Instagram con los casos) con este texto casi igual: "${guion.PRUEBAS}". NUNCA mandes el video gratis para esto: el video gratis es SOLO para quien no tiene dinero. Pedir pruebas NO es lo mismo que no tener plata.`,
     "",
     `SI PREGUNTAN '¿cuánto necesito / cuánto cuesta / cuánto se invierte?': responde con este texto casi igual (y úsalo también para calificar el capital): "${guion.INVERSION}"`,
+    "   • Si a '¿Contarías con eso?' responde que SÍ, o que le cuesta PERO podría conseguirlos ('me queda difícil pero creo que sí', 'haría el esfuerzo'), eso ES UN SÍ: reacciona positivo y llama agendar_llamada. NO le digas 'te faltan $X' (no sabes cuánto tiene) ni lo mandes a conseguir nada: ya te dijo que puede.",
     "",
     "═══ OBJECIONES — usa el guion EXACTO de la que aplique ═══",
     "Cuando la persona objete, identifica CUÁL de estas es y responde con su guion casi tal cual (valida y reencauza al cierre). NO improvises otra respuesta si una de estas aplica:",
@@ -339,6 +340,24 @@ async function responder(mensajeUsuario, historial = [], meta = {}) {
       // Último recurso: si la herramienta no se pudo disparar, entregamos el
       // bloque real con el link igual; jamás dejamos a la persona esperando.
       return fnForzar === "enviar_club" ? guion.CLUB_BLOQUE : guion.CALENDLY_BLOQUE;
+    }
+
+    // ── RED DE SEGURIDAD anti-'te faltan' inventado ──
+    // El modelo a veces dice 'te faltan ~$X' sin que la persona haya dado
+    // NINGUNA cifra en toda la conversación (la inventa). En ese caso: si la
+    // persona acaba de decir que SÍ puede conseguir el mínimo → llamada; si
+    // no, le preguntamos el capital de frente en vez de inventar.
+    if (texto && /te faltan?\b|est[aá]s cerca/i.test(texto)) {
+      const usuarioDioCifra = [...historial, { role: "user", content: mensajeUsuario }].some(
+        (m) => m.role !== "assistant" && /\d/.test(m.content || "")
+      );
+      if (!usuarioDioCifra && meta.capitalUSD == null) {
+        if (/conseguir|consigo|podr[ií]a|s[ií] puedo|har[ií]a el esfuerzo|lo logro/i.test(mensajeUsuario || "")) {
+          const directo = await forzarHerramienta(api, opciones, "agendar_llamada", meta);
+          if (directo) return directo;
+        }
+        return "Para indicarte bien cómo arrancar: ¿con cuánto cuentas hoy para empezar?";
+      }
     }
 
     // ── RED DE SEGURIDAD escalera de capital ──

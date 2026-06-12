@@ -53,7 +53,11 @@ const ABRIR_CALIFICACION =
 
 // ── /inversion — cuando preguntan cuánto se necesita / el precio ──
 const INVERSION =
-  "Bueno bro, te explico: necesitas invertir tanto en la formación que te voy a brindar, para que seas un caso de éxito, como en la publicidad para poder cumplir con las ventas y que logres tener un ingreso real. Aparte, debes contar con una inversión para las plataformas que vas a necesitar para trabajar y capitalizar tu empresa.\n\nEl mínimo para iniciar son *$1,000 dólares*. ¿Contarías con eso?";
+  "Bueno, te explico: la inversión cubre tres cosas.\n" +
+  "1. La *formación* que te voy a brindar, para que ejecutes bien desde el día uno y seas un caso de éxito.\n" +
+  "2. La *publicidad* (anuncios en TikTok y Facebook), que es la que trae las ventas y te genera un ingreso real.\n" +
+  "3. Las *plataformas y herramientas* de tu tienda: la página donde vendes, el dominio y las apps con las que vas a trabajar y capitalizar tu empresa.\n\n" +
+  "El mínimo para iniciar son *$1,000 dólares*. ¿Contarías con eso?";
 
 // ── Tramo "casi califica" ($600–899 USD): empujar a completar los $1.000 ──
 // El prompt le dice a Brayan cuánto le falta exactamente; este texto es la base.
