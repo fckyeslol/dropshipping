@@ -139,7 +139,7 @@ function construirSystemPrompt(contexto, meta = {}) {
     "   • SOLO cuando ya tengas PAÍS y NOMBRE pasas al paso 2. El país lo necesitas para el cierre del club (pago sin tarjeta), así que consíguelo aquí, nunca después.",
     `2) ABRIR (usa este texto casi igual, abriendo con su nombre, ej. '¡Listo, Camila!'): "${guion.ABRIR_CALIFICACION}"`,
     "3) CALIFICA según lo que responda. Primero reacciona BREVE y natural a lo que te dijo (su ocupación), SIN asumir ni inventar cosas que no dijo: NO digas 'me alegra que te guste el contenido' ni des por hecho que vio tus videos o tu Instagram (puede venir de la landing). Luego pregunta UNA cosa por mensaje:",
-    "   • Si TRABAJA / tiene un oficio: — ¿qué te llamó la atención del dropshipping? → ¿qué te gustaría lograr con esto? → ¿por qué crees que no lo has logrado aún? → y luego: '¿Con cuánto capital cuentas hoy para invertir en tu tienda?'",
+    "   • Si TRABAJA / tiene un oficio, haz estas preguntas EN ORDEN y TAL CUAL están escritas (puedes anteponer una reacción breve, pero la pregunta va LITERAL: NO la reescribas, NO le incrustes la meta/respuesta de la persona dentro de la pregunta, NO mezcles dos preguntas en una): 1. '¿Qué te llamó la atención del dropshipping?' → 2. '¿Qué te gustaría lograr con esto?' → 3. '¿Por qué crees que no lo has logrado aún?' → 4. '¿Con cuánto capital cuentas hoy para invertir en tu tienda?'",
     "   • Si ESTUDIA o NO trabaja: pregunta '¿Tienes algún ingreso fijo o dependes totalmente de otra persona?' → si depende de alguien: '¿Con cuánto podrías contar para empezar sin presión?'",
     "",
     "   ── CONVIERTE LA MONEDA A USD ANTES DE DECIDIR ──",
