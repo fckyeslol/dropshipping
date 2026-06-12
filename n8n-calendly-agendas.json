@@ -1,0 +1,71 @@
+{
+  "name": "Calendly → Agendas (E-Master)",
+  "nodes": [
+    {
+      "parameters": {
+        "events": ["invitee.created"]
+      },
+      "id": "a1b2c3d4-0001-4000-8000-000000000001",
+      "name": "Calendly Trigger",
+      "type": "n8n-nodes-base.calendlyTrigger",
+      "typeVersion": 1,
+      "position": [260, 300],
+      "webhookId": "reemplazar-auto",
+      "credentials": {
+        "calendlyApi": { "id": "1", "name": "Calendly account" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const out = [];\nfor (const item of $input.all()) {\n  const p = (item.json && item.json.payload) ? item.json.payload : item.json;\n  const ev = p.scheduled_event || {};\n  const start = ev.start_time || p.start_time;\n  const d = start ? new Date(start) : new Date();\n  const fecha = d.toLocaleDateString('es-CO', { timeZone: 'America/Bogota', day: 'numeric', month: 'long' });\n  const hora = d.toLocaleTimeString('es-CO', { timeZone: 'America/Bogota', hour: 'numeric', minute: '2-digit', hour12: true });\n  const creado = new Date(p.created_at || Date.now()).toLocaleString('es-CO', { timeZone: 'America/Bogota' });\n  let asesor = '';\n  if (Array.isArray(ev.event_memberships) && ev.event_memberships.length) asesor = ev.event_memberships[0].user_name || '';\n  let telefono = '';\n  const qa = p.questions_and_answers || [];\n  for (const q of qa) { if (/tel|phone|celular|whats/i.test(q.question || '')) { telefono = q.answer || ''; break; } }\n  const nombre = (p.name || '') + (telefono ? ' · ' + telefono : '');\n  out.push({ json: { 'Fecha en que agendó': creado, 'Nombre': nombre, 'Fecha de la cita': fecha, 'Hora de la cita': hora, 'Asesor comercial': asesor, 'Estado': 'Agendó' } });\n}\nreturn out;"
+      },
+      "id": "a1b2c3d4-0002-4000-8000-000000000002",
+      "name": "Formatear cita",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "12BcEDX5STFUsLbUU4O00FuiuohNyVaTWv4H99oq1HNM",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Agendas",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-0003-4000-8000-000000000003",
+      "name": "Agendas (append)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [780, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "2", "name": "Google Sheets account" }
+      }
+    }
+  ],
+  "connections": {
+    "Calendly Trigger": {
+      "main": [[{ "node": "Formatear cita", "type": "main", "index": 0 }]]
+    },
+    "Formatear cita": {
+      "main": [[{ "node": "Agendas (append)", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "pinData": {},
+  "meta": { "instanceId": "emaster-calendly-agendas" }
+}

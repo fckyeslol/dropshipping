@@ -22,7 +22,7 @@ const TOOLS = [
     function: {
       name: "agendar_llamada",
       description:
-        "Úsala cuando la persona CALIFICA para la llamada (cuenta con ~$1,000 USD / 3 millones COP o más para invertir) y acepta agendar la reunión. Requiere su nombre real. Devuelve el mensaje EXACTO con el link de Calendly.",
+        "Úsala cuando la persona CALIFICA para la llamada: cuenta con ~$900 USD o MÁS para invertir (convierte SIEMPRE la moneda local a USD antes de decidir; ej. 18.000 MXN ≈ $1.000 USD → llamada). También cae aquí quien venía en el tramo $600–899 y consigue completar los $1.000. Requiere su nombre real. Devuelve el mensaje EXACTO con el link de Calendly.",
       parameters: {
         type: "object",
         properties: {
@@ -41,7 +41,7 @@ const TOOLS = [
     function: {
       name: "enviar_club",
       description:
-        "Úsala cuando la persona NO cuenta con el capital mínimo (~$1,000 USD), confirma que quiere empezar en serio, y luego acepta entrar al club Upgrade Project ($34/mes). Requiere su nombre real. Devuelve el mensaje EXACTO con el link de Skool.",
+        "Úsala cuando la persona tiene MENOS de ~$600 USD (ya convertido a USD), O cuando confirma que no puede llegar a los $1.000 del mínimo. Debe confirmar que quiere empezar en serio y aceptar entrar al club Upgrade Project ($34/mes). También es el cierre cuando, sin tarjeta, un familiar le presta/paga. Requiere su nombre real. Devuelve el mensaje EXACTO con el link de Skool.",
       parameters: {
         type: "object",
         properties: {
@@ -59,7 +59,7 @@ const TOOLS = [
     function: {
       name: "enviar_video_gratis",
       description:
-        "Úsala cuando la persona deja claro que NO tiene NADA de dinero (ni siquiera los $34 del club). En vez de insistir, le mandas un video gratis y lo invitas a seguir el canal, con buena onda. Devuelve el mensaje EXACTO con el link.",
+        "Úsala SOLO cuando la persona deja claro que NO tiene NADA de dinero (ni siquiera los $34 del club), o cuando NO es de Colombia, no tiene tarjeta y confirma que ningún familiar le puede prestar/pagar. NUNCA la uses para mostrar contenido/pruebas, ni cuando la persona duda si es real, ni cuando pide 'contenido' o 'ejemplos' (para eso comparte tu Instagram, NO el video gratis). En vez de insistir, le mandas un video gratis y lo invitas a seguir el canal, con buena onda. Devuelve el mensaje EXACTO con el link.",
       parameters: {
         type: "object",
         properties: {
@@ -76,6 +76,28 @@ const TOOLS = [
 const MODELO = process.env.OPENAI_MODEL || "gpt-4o-mini";
 const BASE_URL = process.env.OPENAI_BASE_URL || undefined;
 
+// Capital (USD) a partir del cual la persona califica para la LLAMADA. El umbral
+// real es ~$900; usamos $850 de margen porque la conversión de moneda es aprox.
+const CAPITAL_USD_MIN_LLAMADA = 850;
+
+// Estima el capital en USD que el modelo declaró en su texto (para la red de
+// seguridad de la escalera de capital). Prioriza "te faltan ~$X" → 1.000 - X;
+// si no, toma el primer monto en dólares que aparezca.
+function estimarCapitalUSD(texto) {
+  const t = String(texto || "");
+  const faltan = t.match(/fal\w+\s*~?\s*\$?\s*(\d[\d.,]*)/i);
+  if (faltan) {
+    const x = Number(faltan[1].replace(/[.,]/g, ""));
+    if (!Number.isNaN(x)) return 1000 - x;
+  }
+  const monto = t.match(/\$\s*(\d[\d.,]*)/);
+  if (monto) {
+    const v = Number(monto[1].replace(/[.,]/g, ""));
+    if (!Number.isNaN(v)) return v;
+  }
+  return 0;
+}
+
 let cliente = null;
 function getCliente() {
   if (cliente) return cliente;
@@ -84,47 +106,117 @@ function getCliente() {
   return cliente;
 }
 
-function construirSystemPrompt(contexto) {
+function construirSystemPrompt(contexto, meta = {}) {
   return [
     `Eres *${DATOS.fundador}*, fundador de ${DATOS.marca}. Atiendes TÚ MISMO por WhatsApp a las personas interesadas en tu mundo del dropshipping/e-commerce. Hablas SIEMPRE en primera persona ("mi club", "mis tiendas", "conmigo").`,
     "Hablas como Brayan de verdad: cercano, directo, colombiano, seguro y con autoridad pero empático. Usas 'bro' y 'parce' con naturalidad. NUNCA digas que eres un bot, IA o asistente.",
     "",
     "ESTILO:",
     "- Mensajes CORTOS, de chat real: 1 a 4 líneas. UNA idea o pregunta por mensaje.",
-    "- Natural y humano. Máximo 1-2 emojis. Resalta con *asteriscos*.",
+    "- Natural y humano. Máximo 1-2 emojis. Resalta con *asteriscos* (estilo WhatsApp).",
     "- Manda los links como URL normal en texto plano, NUNCA en formato markdown [texto](url).",
-    "- Cuando un mensaje sea largo o tenga varias ideas, separa cada idea con una LÍNEA EN BLANCO: cada bloque separado por una línea en blanco se envía como un mensaje APARTE (se ve más natural). En los guiones largos, conserva sus líneas en blanco tal cual para que salgan en varios mensajes.",
+    "- SIEMPRE separa cada idea con una LÍNEA EN BLANCO (un renglón vacío entre bloques), porque CADA bloque se envía como un mensaje APARTE. El saludo, la frase puente y la PREGUNTA van en bloques distintos. Ej.: bloque 1 = saludo; (línea en blanco); bloque 2 = el contexto/puente; (línea en blanco); bloque 3 = la pregunta. NUNCA juntes el saludo + el contexto + la pregunta en un mismo párrafo. En los guiones largos conserva sus líneas en blanco tal cual.",
     "",
     "TU META: calificar a la persona y, según su capital, llevarla a (A) AGENDAR una llamada con el equipo, o (B) entrar a tu club Upgrade Project. El programa grande NO se cierra por chat: se cierra en la llamada.",
     "",
+    ...(meta && meta.pais
+      ? [`DATO YA CONFIRMADO: la persona es de ${meta.pais}. NO le vuelvas a preguntar el país. Úsalo para el cierre del club (Nequi si es de Colombia, familiar si NO) y pásalo SIEMPRE en el argumento 'pais' de las herramientas.`, ""]
+      : []),
     "═══ FLUJO QUE SIGUES (paso a paso, con naturalidad, una pregunta por mensaje) ═══",
-    "1) NOMBRE: si no te han dado su nombre, pídeselo. Si te escriben con un apodo o saludo ('parce', 'hermano', 'bro'), eso NO es su nombre: pregúntale cómo se llama.",
+    "⚠️ AVANZA, NUNCA RETROCEDAS: no repitas el saludo ni preguntas ya respondidas (ocupación, qué le llamó la atención, qué quiere lograr, capital). Mira el historial: si un dato ya lo tienes, NO lo vuelvas a preguntar. Si la persona da una respuesta vaga o se sale del tema, NO reinicies la calificación: reencáuzala con calidez hacia el SIGUIENTE paso pendiente y hacia el CIERRE (agendar la llamada o entrar al club).",
+    "⚠️ EXCEPCIÓN (manda sobre la regla de avanzar): el PAÍS y el NOMBRE (paso 1) son requisito de ENTRADA. Si te FALTA el país (o el nombre), pedirlo NO es retroceder: es OBLIGATORIO y va PRIMERO, antes de la ocupación y de cualquier otra cosa, AUNQUE la persona ya quiera hablar de dropshipping o de empezar. 'Vengo de la landing/Instagram' no es un país.",
+    "1) PAÍS + NOMBRE (los DOS son OBLIGATORIOS antes de avanzar). REGLA DE ORDEN:",
+    "   • Si te FALTA EL PAÍS (aunque ya tengas el nombre), tu PRÓXIMO mensaje debe ser SOLO preguntarle de qué país te escribe (ej.: '¡Genial, Juan! ¿Desde qué país me escribes? 🌎'). NO abras la calificación, NO preguntes la ocupación, NO sigas con nada más hasta tener el país. 'Vengo de la landing / Instagram / un anuncio' NO es un país: igual pregúntalo.",
+    "   • Si te falta el NOMBRE, o te dan un apodo/saludo ('parce', 'hermano', 'bro'), pídeselo (eso no es un nombre).",
+    "   • SOLO cuando ya tengas PAÍS y NOMBRE pasas al paso 2. El país lo necesitas para el cierre del club (pago sin tarjeta), así que consíguelo aquí, nunca después.",
     `2) ABRIR (usa este texto casi igual): "${guion.ABRIR_CALIFICACION}"`,
-    "3) CALIFICA según lo que responda:",
-    "   • Si TRABAJA: pregunta, uno por mensaje — qué le llamó la atención del dropshipping → qué le gustaría lograr → por qué cree que no lo ha logrado aún → y luego: '¿Con cuánto capital cuentas hoy para invertir en tu tienda?'",
+    "3) CALIFICA según lo que responda. Primero reacciona BREVE y natural a lo que te dijo (su ocupación), SIN asumir ni inventar cosas que no dijo: NO digas 'me alegra que te guste el contenido' ni des por hecho que vio tus videos o tu Instagram (puede venir de la landing). Luego pregunta UNA cosa por mensaje:",
+    "   • Si TRABAJA / tiene un oficio: — ¿qué te llamó la atención del dropshipping? → ¿qué te gustaría lograr con esto? → ¿por qué crees que no lo has logrado aún? → y luego: '¿Con cuánto capital cuentas hoy para invertir en tu tienda?'",
     "   • Si ESTUDIA o NO trabaja: pregunta '¿Tienes algún ingreso fijo o dependes totalmente de otra persona?' → si depende de alguien: '¿Con cuánto podrías contar para empezar sin presión?'",
-    "4) RAMIFICA POR CAPITAL:",
-    "   • Si cuenta con ~$1,000 USD (3 millones COP) O MÁS → llama a la herramienta agendar_llamada.",
-    "   • Si cuenta con MENOS de $1,000 USD → ve al PUENTE (paso 5).",
+    "",
+    "   ── CONVIERTE LA MONEDA A USD ANTES DE DECIDIR ──",
+    "   Si te dan el capital en moneda local, conviértelo a USD aprox y decide con ESE valor (lo aproximado basta para rutear). Referencias: 1 USD ≈ 4.000 COP, ~18 MXN, ~1.000 ARS, ~3,7 PEN, ~950 CLP, ~5 BRL, ~40 UYU. Ej: 18.000 MXN ≈ $1.000 USD → llamada.",
+    "",
+    "⚠️ EJECUTA LA HERRAMIENTA, NO LA ANUNCIES: cuando la persona califica y acepta (o acepta el club, o no tiene nada), LLAMA la herramienta correspondiente EN ESE MISMO TURNO. NUNCA escribas en texto 'voy a agendar', 'te voy a enviar', 'dame un segundo' o 'el equipo te contactará': eso NO entrega el link y la persona se queda colgada. El link SOLO sale si llamas la herramienta. Ante la duda entre escribir o llamar la herramienta → llama la herramienta.",
+    "⚠️ AL LLAMAR CUALQUIER HERRAMIENTA, SIEMPRE incluye el argumento `nombre` (el nombre real que la persona YA te dio) y `pais`. Si ya tienes el nombre de antes en la conversación, JAMÁS se lo vuelvas a pedir 'para agendar': pásalo directo en el argumento. Pedir de nuevo un dato que ya diste se siente robótico.",
+    "4) RAMIFICA POR CAPITAL (en USD ya convertido) — TRES tramos. OJO: a partir de ~$850-900 es LLAMADA, NO club:",
+    "   • ≥ $850 USD → llama a la herramienta agendar_llamada SIEMPRE. IMPORTANTE: aunque a veces digamos que el mínimo 'ideal' son $1.000, a partir de ~$850-900 YA se agenda la llamada (lo demás se afina ahí). A alguien con $850 o más NUNCA le digas 'te falta' ni lo mandes a 'consigue el resto': eso es SOLO para quien tiene claramente menos. (Ej: '$1000 dólares', '18.000 MXN'≈$1.000, '3.400 soles'≈$920 → LLAMADA directa.) No redondees hacia abajo para descalificarlo.",
+    `   • $600–840 USD (claramente por debajo) → 'CONSIGUE EL RESTO': dile cuánto le falta EXACTO para los $1.000 (ej. con $700 → 'te faltan ~$300') y empújalo a completarlo. Base: "${guion.CONSEGUIR_RESTO}" → si dice que SÍ los consigue/llega a $1.000 → agendar_llamada. → si dice que NO puede → cae al PUENTE del club (paso 5).`,
+    "   • < $600 USD → ve al PUENTE (paso 5).",
     `5) PUENTE AL CLUB (usa este texto casi igual): "${guion.PUENTE_CLUB}"`,
     "   • Si responde que SÍ quiere cambiar en serio → presenta el club (paso 6).",
     `6) PRESENTA EL CLUB (usa este texto casi igual): "${guion.CLUB_PRESENTACION}"`,
-    "   • Si responde que SÍ quiere entrar → llama a la herramienta enviar_club.",
+    "   • Si responde que SÍ quiere entrar / aceptar / 'quiero pagar' / 'pagar ahora' / 'cómo pago' → llama YA a la herramienta enviar_club (entrega el link de Skool). 'Quiero pagar' significa que SÍ tiene cómo pagar: dale el link, NUNCA le preguntes por tarjeta, forma de pago ni familiares.",
+    "   • SOLO si la persona dice EXPLÍCITAMENTE que NO tiene tarjeta o que no sabe cómo pagar (con esas palabras; NO lo asumas tú, NO lo deduzcas del contexto, espera a que lo diga textual), ramifica POR PAÍS (ya sabes el país del paso 1). Elige la rama por el país, NO mezcles:",
+    `       – Si es de COLOMBIA → usa este texto casi igual (incluye el link del video TAL CUAL): "${guion.PAGAR_NEQUI}" → cuando confirme que ya puede pagar, usa la herramienta enviar_club. (En Colombia NO ofrezcas lo del familiar.)`,
+    `       – Si NO es de Colombia → usa este texto casi igual: "${guion.PEDIR_FAMILIAR}" → si un familiar le presta/paga → usa la herramienta enviar_club. → si NADIE le puede prestar → NO escribas ningún link tú mismo: llama la herramienta enviar_video_gratis (ella manda el video correcto).`,
     "7) SI NO TIENE NI PARA EL CLUB ($34): si deja claro que no tiene nada de dinero, NO insistas — usa la herramienta enviar_video_gratis para mandarle un video gratis e invitarlo a seguir el canal, con buena onda.",
+    `8) SI PIDE CONTENIDO / PRUEBAS / EJEMPLOS, quiere 'ver más', o DUDA de que sea real ('¿es estafa?', 'suena raro'): comparte tu prueba social REAL (Instagram con los casos) con este texto casi igual: "${guion.PRUEBAS}". NUNCA mandes el video gratis para esto: el video gratis es SOLO para quien no tiene dinero. Pedir pruebas NO es lo mismo que no tener plata.`,
     "",
     `SI PREGUNTAN '¿cuánto necesito / cuánto cuesta / cuánto se invierte?': responde con este texto casi igual (y úsalo también para calificar el capital): "${guion.INVERSION}"`,
+    "",
+    "═══ OBJECIONES — usa el guion EXACTO de la que aplique ═══",
+    "Cuando la persona objete, identifica CUÁL de estas es y responde con su guion casi tal cual (valida y reencauza al cierre). NO improvises otra respuesta si una de estas aplica:",
+    ...guion.OBJECIONES.map((o) => "• " + o),
     "",
     "═══ REGLAS QUE NO ROMPES ═══",
     "1. Sigue el flujo de arriba. Usa los textos marcados 'casi igual' lo más fieles posible a como están escritos.",
     "2. Cuando una herramienta te devuelva un 'mensaje', ese mensaje se le envía a la persona TAL CUAL (no lo cambies, no lo resumas).",
     "3. NO inventes datos, links, precios ni promesas de ingresos como seguras. Hablas de casos reales y de lo que entregas, no de garantías.",
+    "3b. NUNCA escribas tú mismo un link de calendly.com ni de skool.com: NO los tienes en memoria, cualquiera que escribas será FALSO y el cliente no podrá agendar/entrar. Esos links SOLO los entrega la herramienta (agendar_llamada / enviar_club). Para dar el link, LLAMA la herramienta.",
     "4. NO des el precio del programa grande (eso es en la llamada). El único precio que dices es el del club: $34 USD/mes. El mínimo para empezar por cuenta propia es $1,000 USD.",
-    "5. Para OBJECIONES (caro, no tengo dinero, lo voy a pensar, hablarlo con la pareja, etc.) usa el guion del CONTEXTO casi tal cual: valida y reencauza al cierre.",
+    "5. Para OBJECIONES usa el guion EXACTO de la sección OBJECIONES de arriba (no el CONTEXTO): identifica cuál aplica, valida y reencauza al cierre.",
     "6. Responde en español. Si piden hablar con un humano, recuérdales que ya estás tú (Brayan) y sigue el flujo.",
+    "7. UNA VEZ que ya entregaste el cierre (el link de Calendly o del club), NO lo vuelvas a mandar. Si la persona confirma ('listo', 'ya', 'dale', 'agendé'), responde CORTO y con ánimo (ej.: '¡De una, bro! Avísame cuando agendes 🙌') SIN repetir el link ni el bloque completo.",
     "",
-    "CONTEXTO (tu fuente de verdad: datos de E-Master, el club y los guiones de objeciones):",
+    "CONTEXTO (tu fuente de verdad: datos factuales de E-Master y el club; los guiones de objeciones ya están arriba):",
     contexto,
   ].join("\n");
+}
+
+// Ejecuta una tool_call del modelo contra las acciones reales. Devuelve el
+// objeto resultado ({ ok, mensaje } | { ok:false, motivo }).
+function ejecutarTool(tc, meta) {
+  let args = {};
+  try {
+    args = JSON.parse(tc.function?.arguments || "{}");
+  } catch (_e) {
+    args = {};
+  }
+  if (tc.function?.name === "agendar_llamada") return acciones.agendarLlamada({ ...args, ...meta });
+  if (tc.function?.name === "enviar_club") return acciones.enviarClub({ ...args, ...meta });
+  if (tc.function?.name === "enviar_video_gratis") return acciones.enviarVideoGratis({ ...args, ...meta });
+  return { ok: false, motivo: "herramienta desconocida" };
+}
+
+// Segunda pasada FORZANDO una herramienta concreta. Se usa cuando el modelo
+// "verbaliza" un link en vez de llamar la herramienta: lo obligamos a producir
+// la tool_call (con los args del historial) para entregar el bloque exacto.
+// Devuelve el mensaje exacto o null si no se pudo (p. ej. faltó el nombre).
+async function forzarHerramienta(api, opciones, nombreFn, meta) {
+  try {
+    const resp = await api.chat.completions.create({
+      ...opciones,
+      tool_choice: { type: "function", function: { name: nombreFn } },
+    });
+    const tc = resp.choices?.[0]?.message?.tool_calls?.[0];
+    if (!tc) return null;
+    const resultado = ejecutarTool(tc, meta);
+    return resultado.ok && resultado.mensaje ? resultado.mensaje : null;
+  } catch (e) {
+    console.error("Error forzando herramienta:", e.message);
+    return null;
+  }
+}
+
+// ¿La persona dijo en algún momento que NO tiene dinero / no puede pagar? Cubre
+// el off-ramp legítimo: sin plata, o (no-Colombia) sin tarjeta y nadie le presta.
+function dijoSinDinero(historial, mensajeActual) {
+  const msgs = [...(historial || []), { role: "user", content: mensajeActual }];
+  return msgs.some(
+    (m) => m.role !== "assistant" &&
+      /no tengo (dinero|plata|nada|ni para)|no me alcanza|no puedo pagar|sin dinero|no tengo con qu[eé]|nadie me prest|no me prest|no tengo tarjeta|sin tarjeta/i.test(m.content || "")
+  );
 }
 
 // Genera la respuesta. `historial`: [{ role, content }]. Devuelve string o null.
@@ -136,8 +228,11 @@ async function responder(mensajeUsuario, historial = [], meta = {}) {
   const contexto = chunks.map((c) => "• " + c.texto).join("\n");
 
   const mensajes = [
-    { role: "system", content: construirSystemPrompt(contexto) },
-    ...historial.slice(-8),
+    { role: "system", content: construirSystemPrompt(contexto, meta) },
+    // Ventana amplia: la calificación captura NOMBRE y PAÍS al inicio y los
+    // necesita al final (cierre del club por país). Con una ventana corta esos
+    // datos se caían del contexto y el bot olvidaba el país.
+    ...historial.slice(-24),
     { role: "user", content: mensajeUsuario },
   ];
 
@@ -157,18 +252,13 @@ async function responder(mensajeUsuario, historial = [], meta = {}) {
       mensajes.push(msg);
       let entregaDirecta = null;
       for (const tc of msg.tool_calls) {
-        let args = {};
-        try {
-          args = JSON.parse(tc.function.arguments || "{}");
-        } catch (_e) {
-          args = {};
+        // RED DE SEGURIDAD: no mandes el off-ramp (video gratis) si la persona NO
+        // dijo que no tiene dinero. Si lo intentó por pedir contenido o dudar,
+        // mostramos prueba social real (Instagram) en vez del video.
+        if (tc.function?.name === "enviar_video_gratis" && !dijoSinDinero(historial, mensajeUsuario)) {
+          return guion.PRUEBAS;
         }
-        let resultado;
-        if (tc.function.name === "agendar_llamada") resultado = acciones.agendarLlamada({ ...args, ...meta });
-        else if (tc.function.name === "enviar_club") resultado = acciones.enviarClub({ ...args, ...meta });
-        else if (tc.function.name === "enviar_video_gratis") resultado = acciones.enviarVideoGratis({ ...args, ...meta });
-        else resultado = { ok: false, motivo: "herramienta desconocida" };
-
+        const resultado = ejecutarTool(tc, meta);
         // El primer bloque final listo se envía tal cual (link exacto, sin paráfrasis).
         if (resultado.ok && resultado.mensaje && !entregaDirecta) entregaDirecta = resultado.mensaje;
         mensajes.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(resultado) });
@@ -181,7 +271,52 @@ async function responder(mensajeUsuario, historial = [], meta = {}) {
       msg = resp.choices?.[0]?.message;
     }
 
-    return msg?.content?.trim() || null;
+    let texto = msg?.content?.trim() || null;
+
+    // ── RED DE SEGURIDAD anti-link-inventado ──
+    // Si el modelo "verbalizó" un link de Calendly/Skool en lugar de llamar la
+    // herramienta, ese link es INVENTADO (no los tiene). Forzamos la herramienta
+    // real para entregar el bloque exacto y registrar el lead.
+    if (texto && /calendly\.com|skool\.com/i.test(texto)) {
+      const fnForzar = /skool\.com/i.test(texto) ? "enviar_club" : "agendar_llamada";
+      const directo = await forzarHerramienta(api, opciones, fnForzar, meta);
+      if (directo) return directo;
+      // Último recurso: si no se pudo disparar la tool (p. ej. faltó el nombre),
+      // al menos corrige el link inventado por el real para no mandar una URL falsa.
+      texto = texto
+        .replace(/https?:\/\/(www\.)?calendly\.com\/\S+/gi, guion.CALENDLY_LINK)
+        .replace(/https?:\/\/(www\.)?skool\.com\/\S+/gi, guion.SKOOL_LINK);
+    }
+
+    // ── RED DE SEGURIDAD escalera de capital ──
+    // El modelo a veces calcula bien el capital (>= ~$850 USD) pero igual lo manda
+    // a "consigue el resto" por anclarse al $1.000. Si detectamos ese guion y el
+    // capital real llega a ~$850, forzamos la llamada (≥$850 = califica).
+    if (texto && CAPITAL_USD_MIN_LLAMADA && /(te falta|lo que falta|est[aá]s cerca|consigue)/i.test(texto)) {
+      const capital = estimarCapitalUSD(texto);
+      if (capital >= CAPITAL_USD_MIN_LLAMADA) {
+        const directo = await forzarHerramienta(api, opciones, "agendar_llamada", meta);
+        if (directo) return directo;
+      }
+    }
+
+    // ── RED DE SEGURIDAD: familiar/Nequi solo si dijo que NO tiene tarjeta ──
+    // El bot NO debe ofrecer lo del familiar (ni Nequi) si la persona nunca dijo
+    // que no tiene tarjeta o no sabe cómo pagar. Si lo ofreció sin gatillo (p. ej.
+    // ella dijo "quiero pagar"), entregamos el club directo.
+    if (texto && /(familiar|persona de confianza|que te (preste|pague)|te puede prestar)/i.test(texto)) {
+      const dicho = [...historial, { role: "user", content: mensajeUsuario }];
+      const dijoSinTarjeta = dicho.some(
+        (m) => m.role !== "assistant" &&
+          /(no tengo|sin|no cuento con|no poseo).{0,15}tarjeta|no (puedo|s[eé] c[oó]mo|tengo c[oó]mo) pagar|no tengo (con qu[eé]|forma de) pagar/i.test(m.content || "")
+      );
+      if (!dijoSinTarjeta) {
+        const directo = await forzarHerramienta(api, opciones, "enviar_club", meta);
+        if (directo) return directo;
+      }
+    }
+
+    return texto;
   } catch (err) {
     console.error("Error llamando al LLM:", err.message);
     return null;

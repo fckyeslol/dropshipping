@@ -111,6 +111,43 @@ const PALABRAS_RESULTADOS = [
   "caso", "casos", "estudiantes", "funciona de verdad", "es real",
 ];
 
+// Señales de OBJECIÓN de garantía: aunque mencionen "resultados", NO es un
+// pedido de testimonios sino la objeción "¿me aseguras resultados?". En ese
+// caso NO mostramos el bloque de testimonios: lo maneja el LLM con su guion.
+const PALABRAS_GARANTIA = [
+  "asegura", "aseguras", "asegures", "garantiza", "garantizas", "garantia",
+  "promete", "prometes", "prometo",
+];
+
+// País por nombre o gentilicio (sin tildes, en minúscula) → país canónico.
+// Sirve para el GATE del país: detectamos de dónde es la persona en su mensaje.
+const PAISES = {
+  colombia: "Colombia", colombiano: "Colombia", colombiana: "Colombia",
+  mexico: "México", mexicano: "México", mexicana: "México",
+  peru: "Perú", peruano: "Perú", peruana: "Perú",
+  argentina: "Argentina", argentino: "Argentina",
+  chile: "Chile", chileno: "Chile", chilena: "Chile",
+  venezuela: "Venezuela", venezolano: "Venezuela", venezolana: "Venezuela",
+  ecuador: "Ecuador", ecuatoriano: "Ecuador", ecuatoriana: "Ecuador",
+  bolivia: "Bolivia", boliviano: "Bolivia", boliviana: "Bolivia",
+  paraguay: "Paraguay", paraguayo: "Paraguay", paraguaya: "Paraguay",
+  uruguay: "Uruguay", uruguayo: "Uruguay", uruguaya: "Uruguay",
+  brasil: "Brasil", brazil: "Brasil", brasileno: "Brasil", brasilero: "Brasil",
+  panama: "Panamá", panameno: "Panamá",
+  guatemala: "Guatemala", guatemalteco: "Guatemala",
+  honduras: "Honduras", hondureno: "Honduras",
+  nicaragua: "Nicaragua", nicaraguense: "Nicaragua",
+  "el salvador": "El Salvador", salvador: "El Salvador", salvadoreno: "El Salvador",
+  "costa rica": "Costa Rica", costarricense: "Costa Rica",
+  "republica dominicana": "República Dominicana", dominicano: "República Dominicana", dominicana: "República Dominicana",
+  "puerto rico": "Puerto Rico", boricua: "Puerto Rico", puertorriqueno: "Puerto Rico",
+  cuba: "Cuba", cubano: "Cuba", cubana: "Cuba",
+  espana: "España", espanol: "España", espanola: "España",
+  "estados unidos": "Estados Unidos", eeuu: "Estados Unidos",
+};
+// Claves ordenadas por longitud desc: prioriza multi-palabra ("costa rica" antes que "rica").
+const CLAVES_PAIS = Object.keys(PAISES).sort((a, b) => b.length - a.length);
+
 function normalizar(texto) {
   return (texto || "")
     .toLowerCase()
@@ -119,14 +156,24 @@ function normalizar(texto) {
     .trim();
 }
 
-// Divide un texto en varios mensajes (más humano), PERO solo si es largo.
-// Los mensajes cortos van en UNA sola burbuja (así no saturamos a WhatsApp/Twilio
-// con muchas burbujas); los largos se cortan en sus líneas en blanco.
-const UMBRAL_DIVIDIR = 300; // caracteres: por debajo de esto, un solo mensaje
+// Detecta el país mencionado en un texto ("soy de Perú", "peruano", etc.).
+// Devuelve el país canónico o null. Usa límites de no-letra para no matchear
+// dentro de otra palabra ("peru" no matchea en "peruano", pero "peruano" sí).
+function detectarPais(texto) {
+  const t = normalizar(texto);
+  for (const clave of CLAVES_PAIS) {
+    const re = new RegExp("(^|[^a-z])" + clave.replace(/ /g, "\\s+") + "([^a-z]|$)");
+    if (re.test(t)) return PAISES[clave];
+  }
+  return null;
+}
 
+// Divide un texto en varios mensajes (más humano). CADA bloque separado por una
+// LÍNEA EN BLANCO se envía como un mensaje APARTE, sin importar el largo: así el
+// saludo, la frase puente y la pregunta salen como mensajes distintos (como
+// chatea una persona real), en vez de un bloque con varias ideas pegadas.
 function dividirEnMensajes(texto) {
   const limpio = String(texto || "").trim();
-  if (limpio.length <= UMBRAL_DIVIDIR) return [limpio];
   const partes = limpio
     .split(/\n[ \t]*\n+/)
     .map((p) => p.trim())
@@ -140,20 +187,61 @@ async function procesarMensaje(mensajeUsuario, sesion, meta = {}) {
   // 1) Saludo / reinicio → saludo (audio si está configurado, si no texto).
   if (SALUDOS.includes(texto)) {
     sesion.historial = [];
+    sesion.pais = null; // reinicia el gate del país
     return saludoResp();
   }
 
+  // GATE DEL PAÍS (determinístico, no depende del LLM): de dónde es la persona
+  // SIEMPRE va primero. Detectamos el país en su mensaje y lo guardamos; si aún
+  // no lo tenemos, preguntamos SOLO el país y no avanzamos a la calificación.
+  const paisDetectado = detectarPais(mensajeUsuario);
+  if (paisDetectado) sesion.pais = paisDetectado;
+  if (!sesion.pais) {
+    sesion.historial.push({ role: "user", content: mensajeUsuario });
+    sesion.historial.push({ role: "assistant", content: guion.PREGUNTA_PAIS });
+    if (sesion.historial.length > 40) sesion.historial = sesion.historial.slice(-40);
+    return guion.PREGUNTA_PAIS;
+  }
+
   // 2) Pide resultados/pruebas → bloque de testimonios reales.
-  if (PALABRAS_RESULTADOS.some((p) => texto.includes(p))) {
+  //    PERO si es la objeción de garantía ("¿me aseguras resultados?"), NO:
+  //    eso lo responde el LLM con el guion de garantía.
+  if (
+    PALABRAS_RESULTADOS.some((p) => texto.includes(p)) &&
+    !PALABRAS_GARANTIA.some((p) => texto.includes(p))
+  ) {
     return resultados.testimonios();
   }
 
   // 3) Todo lo demás lo lleva el LLM (Brayan), con E-Master como contexto.
-  const respuestaLLM = await llm.responder(mensajeUsuario, sesion.historial, meta);
+  //    Le pasamos el país ya capturado para que NO lo vuelva a preguntar y para
+  //    el cierre por país (Nequi vs familiar) y los args de las herramientas.
+  let respuestaLLM = await llm.responder(mensajeUsuario, sesion.historial, { ...meta, pais: sesion.pais });
   if (respuestaLLM) {
+    // Anti-repetición del CIERRE: si el bot ya entregó un bloque de cierre
+    // (Calendly / club / video) y lo vuelve a generar, NO repetimos el bloque
+    // con el link; respondemos algo corto de confirmación. Así no spameamos el
+    // mismo link cuando la persona dice "listo", "ya", etc.
+    const tipoCierre =
+      respuestaLLM === guion.CALENDLY_BLOQUE ? "llamada" :
+      respuestaLLM === guion.CLUB_BLOQUE ? "club" :
+      respuestaLLM === guion.VIDEO_GRATIS ? "video" : null;
+
+    if (tipoCierre && sesion.cerrado === tipoCierre) {
+      // Ya se entregó este cierre: en vez de repetir el link, hacemos SEGUIMIENTO.
+      respuestaLLM =
+        tipoCierre === "llamada" ? "¿Ya pudiste agendar en el link, bro? Avísame apenas lo hagas y lo confirmamos 🙌" :
+        tipoCierre === "club" ? "¿Ya pudiste entrar al club? Mándame la captura apenas estés adentro y te activo de una 🙌" :
+        "¡Listo, bro! Cualquier cosa por aquí estoy 🙌";
+    } else if (tipoCierre) {
+      sesion.cerrado = tipoCierre;
+    }
+
     sesion.historial.push({ role: "user", content: mensajeUsuario });
     sesion.historial.push({ role: "assistant", content: respuestaLLM });
-    if (sesion.historial.length > 12) sesion.historial = sesion.historial.slice(-12);
+    // Guardamos una ventana amplia: el cierre del club depende del PAÍS capturado
+    // al inicio de la calificación, así que no debe caerse del historial.
+    if (sesion.historial.length > 40) sesion.historial = sesion.historial.slice(-40);
     return respuestaLLM;
   }
 

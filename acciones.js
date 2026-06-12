@@ -71,7 +71,7 @@ function registrarLead(lead, opciones = {}) {
 // Rama CALIFICADA: agenda la llamada (Calendly).
 function agendarLlamada(lead = {}) {
   if (!pareceNombreValido(lead.nombre)) {
-    return { ok: false, motivo: "Aún no tienes su nombre real (parece un saludo o apodo). Pídeselo antes de agendar." };
+    return { ok: false, motivo: "No recibí el argumento 'nombre'. Si la persona YA te dio su nombre antes en la conversación, vuelve a llamar agendar_llamada incluyéndolo en 'nombre' (NO se lo preguntes otra vez). Pídeselo SOLO si de verdad nunca lo dio o si dio un apodo/saludo." };
   }
   // tabla:true → este SÍ va a la tabla del servicio 1:1.
   registrarLead({ ...lead, rama: "llamada", evento: "agendar_llamada", ts: new Date().toISOString() }, { tabla: true });
@@ -81,7 +81,7 @@ function agendarLlamada(lead = {}) {
 // Rama CLUB: entrega el club Upgrade Project (Skool, $34/mes).
 function enviarClub(lead = {}) {
   if (!pareceNombreValido(lead.nombre)) {
-    return { ok: false, motivo: "Aún no tienes su nombre real (parece un saludo o apodo). Pídeselo antes de enviar el club." };
+    return { ok: false, motivo: "No recibí el argumento 'nombre'. Si la persona YA te dio su nombre antes en la conversación, vuelve a llamar enviar_club incluyéndolo en 'nombre' (NO se lo preguntes otra vez). Pídeselo SOLO si de verdad nunca lo dio o si dio un apodo/saludo." };
   }
   // tabla:false → el club NO va a la tabla del 1:1 (solo logs + seguimiento).
   registrarLead({ ...lead, rama: "club", evento: "enviar_club", ts: new Date().toISOString() }, { tabla: false });

@@ -13,9 +13,6 @@ logs/
 # Datos privados (chats de WhatsApp exportados, leads) — NO subir
 data/
 
-# Chat de prueba local (NO exponer en producción)
-public/chat.html
-
 # Sistema operativo / editor
 .DS_Store
 Thumbs.db
