@@ -252,11 +252,19 @@ async function responder(mensajeUsuario, historial = [], meta = {}) {
       mensajes.push(msg);
       let entregaDirecta = null;
       for (const tc of msg.tool_calls) {
-        // RED DE SEGURIDAD: no mandes el off-ramp (video gratis) si la persona NO
-        // dijo que no tiene dinero. Si lo intentó por pedir contenido o dudar,
-        // mostramos prueba social real (Instagram) en vez del video.
+        // GUARD: no mandes el off-ramp (video gratis) si la persona NO dijo que no
+        // tiene dinero. En vez de mandarlo (o caer en loop de Instagram), guiamos
+        // al modelo a CERRAR o a compartir pruebas, y lo dejamos reaccionar.
         if (tc.function?.name === "enviar_video_gratis" && !dijoSinDinero(historial, mensajeUsuario)) {
-          return guion.PRUEBAS;
+          mensajes.push({
+            role: "tool",
+            tool_call_id: tc.id,
+            content: JSON.stringify({
+              ok: false,
+              motivo: "NO le mandes el video gratis: la persona NO dijo que no tiene dinero. Si quiere empezar/ingresar/iniciar/pagar, CIÉRRALA con enviar_club (o agendar_llamada si su capital es >= ~$850 USD). Si SOLO pide ver pruebas/contenido, comparte tu Instagram en UNA frase. No repitas el mismo mensaje.",
+            }),
+          });
+          continue; // no entregamos nada; el modelo reacciona en la segunda pasada
         }
         const resultado = ejecutarTool(tc, meta);
         // El primer bloque final listo se envía tal cual (link exacto, sin paráfrasis).
