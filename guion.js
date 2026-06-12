@@ -43,6 +43,10 @@ const PREGUNTA_PAIS =
 const PREGUNTA_NOMBRE_PAIS =
   "¡Genial! Antes de seguir, cuéntame: ¿con quién tengo el gusto y desde qué país me escribes?";
 
+// ── Gate, segundo intento: ya preguntamos y no reconocimos el país ──
+const PREGUNTA_PAIS_REINTENTO =
+  "Perdón que insista: necesito saber tu país para indicarte bien cómo empezar. ¿De qué país me escribes?";
+
 // ── /upgrade — abre la calificación (cuando ya tengo el nombre) ──
 const ABRIR_CALIFICACION =
   "Vi que quieres empezar con dropshipping.\n\nAntes de explicarte todo, quiero entender un poco tu situación para ver si realmente esto es para ti y cómo ayudarte mejor.\n\n¿A qué te dedicas actualmente?";
@@ -124,6 +128,7 @@ module.exports = {
   SALUDO,
   PREGUNTA_PAIS,
   PREGUNTA_NOMBRE_PAIS,
+  PREGUNTA_PAIS_REINTENTO,
   PRUEBAS,
   ABRIR_CALIFICACION,
   INVERSION,

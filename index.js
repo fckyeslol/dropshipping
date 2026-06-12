@@ -148,6 +148,70 @@ const PAISES = {
 // Claves ordenadas por longitud desc: prioriza multi-palabra ("costa rica" antes que "rica").
 const CLAVES_PAIS = Object.keys(PAISES).sort((a, b) => b.length - a.length);
 
+// Lugares conocidos (departamentos/ciudades) → país. Best-effort para cuando
+// la persona responde con su ciudad o región en vez del país ("vengo del
+// Chocó"). Solo lugares poco ambiguos: los que chocan con nombres de persona,
+// palabras comunes u otros países se dejan fuera y se repregunta.
+const LUGARES = {
+  // Colombia: departamentos y ciudades principales
+  choco: "Colombia", antioquia: "Colombia", cundinamarca: "Colombia",
+  atlantico: "Colombia", santander: "Colombia", narino: "Colombia",
+  boyaca: "Colombia", caldas: "Colombia", risaralda: "Colombia",
+  quindio: "Colombia", tolima: "Colombia", huila: "Colombia",
+  casanare: "Colombia", guajira: "Colombia", magdalena: "Colombia",
+  putumayo: "Colombia", caqueta: "Colombia", arauca: "Colombia",
+  bogota: "Colombia", medellin: "Colombia", cali: "Colombia",
+  barranquilla: "Colombia", cartagena: "Colombia", cucuta: "Colombia",
+  bucaramanga: "Colombia", pereira: "Colombia", manizales: "Colombia",
+  ibague: "Colombia", "santa marta": "Colombia", villavicencio: "Colombia",
+  pasto: "Colombia", monteria: "Colombia", neiva: "Colombia",
+  popayan: "Colombia", valledupar: "Colombia", quibdo: "Colombia",
+  tunja: "Colombia", sincelejo: "Colombia", riohacha: "Colombia",
+  armenia: "Colombia",
+  // México
+  cdmx: "México", "ciudad de mexico": "México", guadalajara: "México",
+  monterrey: "México", puebla: "México", tijuana: "México",
+  cancun: "México", chihuahua: "México", oaxaca: "México",
+  chiapas: "México", veracruz: "México", queretaro: "México",
+  toluca: "México", jalisco: "México", sinaloa: "México",
+  sonora: "México", yucatan: "México", michoacan: "México",
+  guanajuato: "México", tabasco: "México", tamaulipas: "México",
+  "nuevo leon": "México", "baja california": "México",
+  // Perú
+  lima: "Perú", arequipa: "Perú", trujillo: "Perú", cusco: "Perú",
+  piura: "Perú", chiclayo: "Perú", iquitos: "Perú", callao: "Perú",
+  tacna: "Perú",
+  // Argentina
+  "buenos aires": "Argentina", "la plata": "Argentina",
+  "mar del plata": "Argentina", tucuman: "Argentina", neuquen: "Argentina",
+  mendoza: "Argentina",
+  // Chile
+  santiago: "Chile", valparaiso: "Chile", concepcion: "Chile",
+  antofagasta: "Chile", "vina del mar": "Chile",
+  // Venezuela
+  caracas: "Venezuela", maracaibo: "Venezuela", barquisimeto: "Venezuela",
+  maracay: "Venezuela",
+  // Ecuador
+  quito: "Ecuador", guayaquil: "Ecuador", cuenca: "Ecuador", ambato: "Ecuador",
+  // Bolivia
+  "la paz": "Bolivia", cochabamba: "Bolivia", "santa cruz": "Bolivia",
+  // Otros
+  asuncion: "Paraguay", montevideo: "Uruguay",
+  "sao paulo": "Brasil", "rio de janeiro": "Brasil", brasilia: "Brasil",
+  tegucigalpa: "Honduras", "san pedro sula": "Honduras",
+  managua: "Nicaragua", "san salvador": "El Salvador",
+  "san jose": "Costa Rica", "santo domingo": "República Dominicana",
+  "punta cana": "República Dominicana", habana: "Cuba",
+  madrid: "España", barcelona: "España", sevilla: "España",
+  bilbao: "España", malaga: "España", zaragoza: "España",
+  tenerife: "España", canarias: "España",
+  miami: "Estados Unidos", "nueva york": "Estados Unidos",
+  "new york": "Estados Unidos", houston: "Estados Unidos",
+  orlando: "Estados Unidos", chicago: "Estados Unidos",
+  "los angeles": "Estados Unidos",
+};
+const CLAVES_LUGAR = Object.keys(LUGARES).sort((a, b) => b.length - a.length);
+
 function normalizar(texto) {
   return (texto || "")
     .toLowerCase()
@@ -164,6 +228,11 @@ function detectarPais(texto) {
   for (const clave of CLAVES_PAIS) {
     const re = new RegExp("(^|[^a-z])" + clave.replace(/ /g, "\\s+") + "([^a-z]|$)");
     if (re.test(t)) return PAISES[clave];
+  }
+  // Segundo intento: lugares conocidos (ciudad/departamento → país).
+  for (const clave of CLAVES_LUGAR) {
+    const re = new RegExp("(^|[^a-z])" + clave.replace(/ /g, "\\s+") + "([^a-z]|$)");
+    if (re.test(t)) return LUGARES[clave];
   }
   return null;
 }
@@ -220,7 +289,16 @@ async function procesarMensaje(mensajeUsuario, sesion, meta = {}) {
   const nombreDetectado = detectarNombre(mensajeUsuario);
   if (nombreDetectado) sesion.nombre = nombreDetectado;
   if (!sesion.pais) {
-    const pregunta = sesion.nombre ? guion.PREGUNTA_PAIS : guion.PREGUNTA_NOMBRE_PAIS;
+    // Si ya preguntamos el país y la respuesta no se reconoció (p. ej. una
+    // ciudad que no está en LUGARES), repreguntamos con otra frase en vez de
+    // repetir el mismo mensaje como un robot.
+    const ultimo = sesion.historial[sesion.historial.length - 1];
+    const yaPregunto =
+      ultimo && ultimo.role === "assistant" &&
+      [guion.PREGUNTA_PAIS, guion.PREGUNTA_NOMBRE_PAIS, guion.PREGUNTA_PAIS_REINTENTO].includes(ultimo.content);
+    const pregunta = yaPregunto
+      ? guion.PREGUNTA_PAIS_REINTENTO
+      : (sesion.nombre ? guion.PREGUNTA_PAIS : guion.PREGUNTA_NOMBRE_PAIS);
     sesion.historial.push({ role: "user", content: mensajeUsuario });
     sesion.historial.push({ role: "assistant", content: pregunta });
     if (sesion.historial.length > 40) sesion.historial = sesion.historial.slice(-40);
