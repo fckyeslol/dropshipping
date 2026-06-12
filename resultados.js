@@ -29,14 +29,14 @@ function testimonios() {
   }).join("\n");
 
   let texto =
-    "🔥 *Algunos resultados de estudiantes de E-Master:*\n\n" +
+    "*Algunos resultados de estudiantes de E-Master:*\n\n" +
     lista +
     "\n\nSon casos reales (hay entrevistas completas en YouTube).";
 
-  if (CANAL_YOUTUBE) texto += `\n▶️ ${CANAL_YOUTUBE}`;
+  if (CANAL_YOUTUBE) texto += `\n${CANAL_YOUTUBE}`;
 
   texto +=
-    "\n\nLo mejor es que veamos *tu* caso en una llamada con el equipo, sin compromiso. ¿Te gustaría que la agendemos? 😊";
+    "\n\nLo mejor es que veamos *tu* caso en una llamada con el equipo, sin compromiso. ¿Te gustaría que la agendemos?";
 
   return texto;
 }

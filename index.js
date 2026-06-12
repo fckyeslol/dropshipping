@@ -168,6 +168,24 @@ function detectarPais(texto) {
   return null;
 }
 
+// Detección de nombre CONSERVADORA: solo patrones explícitos ("me llamo Juan",
+// "mi nombre es Ana", "soy Pedro"). Si no hay patrón claro NO asume nombre
+// (el LLM lo pide después). Sirve para que el gate del país no vuelva a pedir
+// el nombre cuando la persona ya lo dio.
+const NO_NOMBRES = new Set([
+  "de", "del", "la", "el", "un", "una", "desde", "muy", "mas",
+  "interesado", "interesada", "nuevo", "nueva", "yo", "alguien",
+  "estudiante", "emprendedor", "emprendedora",
+]);
+function detectarNombre(texto) {
+  const t = normalizar(texto);
+  const m = t.match(/(?:me llamo|mi nombre es|soy)\s+([a-zñ]{3,})/);
+  if (!m) return null;
+  const candidato = m[1];
+  if (NO_NOMBRES.has(candidato) || PAISES[candidato]) return null;
+  return candidato.charAt(0).toUpperCase() + candidato.slice(1);
+}
+
 // Divide un texto en varios mensajes (más humano). CADA bloque separado por una
 // LÍNEA EN BLANCO se envía como un mensaje APARTE, sin importar el largo: así el
 // saludo, la frase puente y la pregunta salen como mensajes distintos (como
@@ -188,19 +206,25 @@ async function procesarMensaje(mensajeUsuario, sesion, meta = {}) {
   if (SALUDOS.includes(texto)) {
     sesion.historial = [];
     sesion.pais = null; // reinicia el gate del país
+    sesion.nombre = null; // reinicia el nombre capturado
     return saludoResp();
   }
 
   // GATE DEL PAÍS (determinístico, no depende del LLM): de dónde es la persona
-  // SIEMPRE va primero. Detectamos el país en su mensaje y lo guardamos; si aún
-  // no lo tenemos, preguntamos SOLO el país y no avanzamos a la calificación.
+  // SIEMPRE va primero. Detectamos país y nombre en su mensaje y los guardamos;
+  // si aún no tenemos el país, lo preguntamos y no avanzamos a la calificación.
+  // Si TAMPOCO tenemos el nombre, pedimos los DOS en el mismo mensaje (nunca
+  // asumimos quién es ni su género).
   const paisDetectado = detectarPais(mensajeUsuario);
   if (paisDetectado) sesion.pais = paisDetectado;
+  const nombreDetectado = detectarNombre(mensajeUsuario);
+  if (nombreDetectado) sesion.nombre = nombreDetectado;
   if (!sesion.pais) {
+    const pregunta = sesion.nombre ? guion.PREGUNTA_PAIS : guion.PREGUNTA_NOMBRE_PAIS;
     sesion.historial.push({ role: "user", content: mensajeUsuario });
-    sesion.historial.push({ role: "assistant", content: guion.PREGUNTA_PAIS });
+    sesion.historial.push({ role: "assistant", content: pregunta });
     if (sesion.historial.length > 40) sesion.historial = sesion.historial.slice(-40);
-    return guion.PREGUNTA_PAIS;
+    return pregunta;
   }
 
   // 2) Pide resultados/pruebas → bloque de testimonios reales.
@@ -216,7 +240,11 @@ async function procesarMensaje(mensajeUsuario, sesion, meta = {}) {
   // 3) Todo lo demás lo lleva el LLM (Brayan), con E-Master como contexto.
   //    Le pasamos el país ya capturado para que NO lo vuelva a preguntar y para
   //    el cierre por país (Nequi vs familiar) y los args de las herramientas.
-  let respuestaLLM = await llm.responder(mensajeUsuario, sesion.historial, { ...meta, pais: sesion.pais });
+  // Solo pasamos `nombre` si lo detectamos de verdad: pasarlo en null/undefined
+  // pisaría el nombre que el LLM manda en los argumentos de las herramientas.
+  const metaLLM = { ...meta, pais: sesion.pais };
+  if (sesion.nombre) metaLLM.nombre = sesion.nombre;
+  let respuestaLLM = await llm.responder(mensajeUsuario, sesion.historial, metaLLM);
   if (respuestaLLM) {
     // Anti-repetición del CIERRE: si el bot ya entregó un bloque de cierre
     // (Calendly / club / video) y lo vuelve a generar, NO repetimos el bloque
@@ -230,9 +258,9 @@ async function procesarMensaje(mensajeUsuario, sesion, meta = {}) {
     if (tipoCierre && sesion.cerrado === tipoCierre) {
       // Ya se entregó este cierre: en vez de repetir el link, hacemos SEGUIMIENTO.
       respuestaLLM =
-        tipoCierre === "llamada" ? "¿Ya pudiste agendar en el link, bro? Avísame apenas lo hagas y lo confirmamos 🙌" :
-        tipoCierre === "club" ? "¿Ya pudiste entrar al club? Mándame la captura apenas estés adentro y te activo de una 🙌" :
-        "¡Listo, bro! Cualquier cosa por aquí estoy 🙌";
+        tipoCierre === "llamada" ? "¿Ya pudiste agendar en el link, bro? Avísame apenas lo hagas y lo confirmamos." :
+        tipoCierre === "club" ? "¿Ya pudiste entrar al club? Mándame la captura apenas estés adentro y te activo de una." :
+        "¡Listo, bro! Cualquier cosa por aquí estoy.";
     } else if (tipoCierre) {
       sesion.cerrado = tipoCierre;
     }
@@ -351,7 +379,7 @@ app.post("/api/manychat", async (req, res) => {
     });
   } catch (err) {
     console.error("Error en /api/manychat:", err.message);
-    res.json({ version: "v2", content: { messages: [{ type: "text", text: "Dame un segundo 🙌" }] } });
+    res.json({ version: "v2", content: { messages: [{ type: "text", text: "Dame un segundo" }] } });
   }
 });
 
