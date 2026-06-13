@@ -20,7 +20,7 @@ const SKOOL_LINK =
   limpiarUrl(process.env.CLUB_LINK) || "https://www.skool.com/upgrade-project-6844/about";
 const VIDEO_GRATIS_URL =
   limpiarUrl(process.env.VIDEO_GRATIS_URL) || "https://youtu.be/iBGLGsKrpk0";
-const NEQUI_VIDEO_URL = limpiarUrl(process.env.NEQUI_VIDEO_URL) || "";
+const NEQUI_VIDEO_URL = limpiarUrl(process.env.NEQUI_VIDEO_URL) || "https://youtube.com/shorts/JRrcNb0uTvg";
 const INSTAGRAM_URL = limpiarUrl(process.env.INSTAGRAM_URL) || "https://instagram.com/brayanher_";
 
 // ── Apertura cuando alguien solo saluda (pido nombre Y país de una) ──
