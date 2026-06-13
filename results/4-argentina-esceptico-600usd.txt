@@ -1,0 +1,78 @@
+========================================
+PROFILE: Lautaro (Argentina, escéptico, $600 USD)
+PHONE: whatsapp:+15556920729
+PROFILE DATA: Argentinian male, IT worker, skeptical, $600 USD — should get Calendly
+========================================
+
+--- Turn 1 ---
+>>> USER: Hola
+<<< BOT: ¡Hey! ¿Qué más? Te escribe *Brayan*.
+¿Con quién tengo el gusto y desde qué país me escribes?
+
+--- Turn 2 ---
+>>> USER: Lautaro
+<<< BOT: ¡Genial! Antes de seguir, cuéntame: ¿con quién tengo el gusto y desde qué país me escribes?
+
+--- Turn 3 ---
+>>> USER: Argentina
+<<< BOT: ¡Listo, Lautaro! Vi que quieres empezar con dropshipping.
+<<< BOT: Antes de explicarte todo, quiero entender un poco tu situación para ver si realmente esto es para ti y cómo ayudarte mejor.
+<<< BOT: ¿A qué te dedicas actualmente?
+
+--- Turn 4 ---
+>>> USER: Trabajo como desarrollador web
+<<< BOT: ¡Perfecto!
+<<< BOT: ¿Qué te llamó la atención del dropshipping?
+
+--- Turn 5 ---
+>>> USER: He visto mucha gente vendiendo cursos y no sé si esto es real
+<<< BOT: *Algunos resultados de estudiantes de E-Master:*
+<<< BOT: • *Andrés Galíndez* — +10K USD: de empleado en un parqueadero a su primer mes
+• *Cristian Lozano* — +10K USD: dejó su empleo a los 30 y empezó de cero (Popayán)
+• *David Montoya* — +10K USD: de un call center a su primer mes con dropshipping
+• *Kevin &amp; Carlos* — +20K USD: escalando en un solo mes (Barranquilla)
+• *Luis David* — +50K USD: en sus primeros dos meses, estudiando en la universidad
+• *Lucas Valderruten* — +10K USD: sin saber nada del negocio, su primer mes
+• *Samuel Cabrera* — +10K USD: desde Cali y desde cero, su primer mes
+• *Liz &amp; German* — +10K USD: en pareja, en un mes
+<<< BOT: Son casos reales (hay entrevistas completas en YouTube).
+<<< BOT: Lo mejor es que veamos *tu* caso en una llamada con el equipo, sin compromiso. ¿Te gustaría que la agendemos?
+
+--- Turn 6 ---
+>>> USER: Quiero un ingreso extra, pero no quiero perder plata
+<<< BOT: Entiendo, Lautaro.
+<<< BOT: ¿Qué te gustaría lograr con esto?
+
+--- Turn 7 ---
+>>> USER: Mostrame pruebas de que funciona
+<<< BOT: *Algunos resultados de estudiantes de E-Master:*
+<<< BOT: • *Andrés Galíndez* — +10K USD: de empleado en un parqueadero a su primer mes
+• *Cristian Lozano* — +10K USD: dejó su empleo a los 30 y empezó de cero (Popayán)
+• *David Montoya* — +10K USD: de un call center a su primer mes con dropshipping
+• *Kevin &amp; Carlos* — +20K USD: escalando en un solo mes (Barranquilla)
+• *Luis David* — +50K USD: en sus primeros dos meses, estudiando en la universidad
+• *Lucas Valderruten* — +10K USD: sin saber nada del negocio, su primer mes
+• *Samuel Cabrera* — +10K USD: desde Cali y desde cero, su primer mes
+• *Liz &amp; German* — +10K USD: en pareja, en un mes
+<<< BOT: Son casos reales (hay entrevistas completas en YouTube).
+<<< BOT: Lo mejor es que veamos *tu* caso en una llamada con el equipo, sin compromiso. ¿Te gustaría que la agendemos?
+
+--- Turn 8 ---
+>>> USER: Tengo unos $600 dólares
+<<< BOT: Gracias por compartir eso, Lautaro.
+<<< BOT: ¿Por qué crees que no lo has logrado aún?
+
+--- Turn 9 ---
+>>> USER: Bueno, dale, agendo la llamada
+<<< BOT: Excelente. Mira, no me gusta explicarte todo por aquí porque se pierde mucha información, y lo importante es que aprendas a manejar todo.
+<<< BOT: ¿Qué te parece si agendamos una reunión con el equipo y te explicamos todo por dentro?
+<<< BOT: https://calendly.com/d/cxz9-jk3-tfp/e-master-brayan-hernandez
+<<< BOT: Agendas por ahí; el equipo te va a explicar absolutamente todo el proceso y así tienes todo mucho más claro.
+<<< BOT: Avísame cuando agendes para confirmar.
+
+*** ✅ OUTCOME: llamada_agendada (turn 9) ***
+
+=== FINAL OUTCOME: llamada_agendada (turn 9) ===
+Scripted turns: 10, Total turns used: 9
+
+✅ No issues detected

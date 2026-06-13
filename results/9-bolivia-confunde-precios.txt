@@ -1,0 +1,68 @@
+========================================
+PROFILE: Diego (Bolivia, confunde precios, $1500 USD)
+PHONE: whatsapp:+15555260800
+PROFILE DATA: Bolivian male, works in logistics, has $1500 USD but thinks it's too expensive, mixing up programs. Tests objection handling + price confusion.
+========================================
+
+--- Turn 1 ---
+>>> USER: Hola, qué más
+<<< BOT: ¡Genial! Antes de seguir, cuéntame: ¿con quién tengo el gusto y desde qué país me escribes?
+
+--- Turn 2 ---
+>>> USER: Diego
+<<< BOT: Perdón que insista: necesito saber tu país para indicarte bien cómo empezar. ¿De qué país me escribes?
+⚠️ ISSUE: Repetición: bot asked for country more than once (or insisted)
+
+--- Turn 3 ---
+>>> USER: Bolivia
+<<< BOT: ¡Listo, Diego! Vi que quieres empezar con dropshipping.
+<<< BOT: Antes de explicarte todo, quiero entender un poco tu situación para ver si realmente esto es para ti y cómo ayudarte mejor.
+<<< BOT: ¿A qué te dedicas actualmente?
+
+--- Turn 4 ---
+>>> USER: Trabajo en logística de una empresa
+<<< BOT: Perfecto, Diego.
+<<< BOT: ¿Qué te llamó la atención del dropshipping?
+
+--- Turn 5 ---
+>>> USER: Quiero un negocio propio para dejar de depender de un salario
+<<< BOT: Entiendo, Diego. Es una motivación muy válida.
+<<< BOT: ¿Qué te gustaría lograr con esto?
+
+--- Turn 6 ---
+>>> USER: He visto que el dropshipping necesita mucha inversión
+<<< BOT: Es cierto que se requiere inversión, pero hay formas de hacerlo con estrategia.
+<<< BOT: ¿Por qué crees que no lo has logrado aún?
+
+--- Turn 7 ---
+>>> USER: Tengo unos $1500 dólares
+<<< BOT: ¡Eso está genial, Diego! Con ese capital puedes empezar.
+<<< BOT: Para recomendarte el camino correcto y no hacerte perder el tiempo, cuéntame: ¿tienes algún ingreso fijo o dependes totalmente de otra persona?
+
+--- Turn 8 ---
+>>> USER: ¿Y cuánto cuesta tu programa?
+<<< BOT: Te explico: la inversión cubre tres cosas.
+<<< BOT: 1. La *formación* que te voy a brindar, para que ejecutes bien desde el día uno y seas un caso de éxito.
+<<< BOT: 2. La *publicidad* (anuncios en TikTok y Facebook), que es la que trae las ventas y te genera un ingreso real.
+<<< BOT: 3. Las *plataformas y herramientas* de tu tienda: la página donde vendes, el dominio y las apps con las que vas a trabajar y capitalizar tu empresa.
+<<< BOT: El mínimo para iniciar son *$1,000 dólares*. ¿Contarías con eso?
+
+--- Turn 9 ---
+>>> USER: ¿1500 dólares el programa? Eso es carísimo
+<<< BOT: Bro, el costo ya lo estás pagando… solo que sin resultados. La diferencia es que hoy puedes invertir para cambiar esa situación.
+<<< BOT: ¿Qué prefieres seguir pagando: el precio de quedarte igual o la inversión que te va a sacar de ahí? Y "caro" comparado con qué… ¿con algo que no te da resultados? Aquí recibes en proporción a lo que inviertes. ¿Te parece?
+
+--- Turn 10 ---
+>>> USER: Ah, pensé que el programa costaba eso. ¿Y el club qué incluye? No sé...
+<<< BOT: Con lo que tienes para arrancar, definitivamente vale la pena una llamada para armarte el plan correcto y que aproveches al máximo.
+<<< BOT: Te paso el link para que agendemos:
+<<< BOT: https://calendly.com/d/cxz9-jk3-tfp/e-master-brayan-hernandez
+<<< BOT: ¿Te queda mejor hoy o mañana?
+
+*** ✅ OUTCOME: llamada_agendada (turn 10) ***
+
+=== FINAL OUTCOME: llamada_agendada (turn 10) ===
+Scripted turns: 11, Total turns used: 10
+
+⚠️  ISSUES FOUND (1):
+  - Repetición: bot asked for country more than once (or insisted)

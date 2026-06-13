@@ -1,0 +1,66 @@
+========================================
+PROFILE: Andrés (Colombia, VIP, $5000 USD)
+PHONE: whatsapp:+15555197559
+PROFILE DATA: Colombian male, business owner, $5000 USD, wants Premium — should get Calendly
+========================================
+
+--- Turn 1 ---
+>>> USER: Hola, soy Andrés
+<<< BOT: ¡Genial! Antes de seguir, cuéntame: ¿desde qué país me escribes?
+
+--- Turn 2 ---
+>>> USER: Colombia
+<<< BOT: ¡Listo, Andrés! Vi que quieres empezar con dropshipping.
+<<< BOT: Antes de explicarte todo, quiero entender un poco tu situación para ver si realmente esto es para ti y cómo ayudarte mejor.
+<<< BOT: ¿A qué te dedicas actualmente?
+
+--- Turn 3 ---
+>>> USER: Tengo un negocio de ropa, ya tengo tienda online
+<<< BOT: Perfecto, Andrés.
+<<< BOT: ¿Qué te llamó la atención del dropshipping?
+
+--- Turn 4 ---
+>>> USER: Quiero escalar con dropshipping, ya sé lo básico
+<<< BOT: Entiendo, Andrés.
+<<< BOT: ¿Qué te gustaría lograr con esto?
+
+--- Turn 5 ---
+>>> USER: Pasarme a full time con esto, quiero resultados rápidos
+<<< BOT: *Algunos resultados de estudiantes de E-Master:*
+<<< BOT: • *Andrés Galíndez* — +10K USD: de empleado en un parqueadero a su primer mes
+• *Cristian Lozano* — +10K USD: dejó su empleo a los 30 y empezó de cero (Popayán)
+• *David Montoya* — +10K USD: de un call center a su primer mes con dropshipping
+• *Kevin &amp; Carlos* — +20K USD: escalando en un solo mes (Barranquilla)
+• *Luis David* — +50K USD: en sus primeros dos meses, estudiando en la universidad
+• *Lucas Valderruten* — +10K USD: sin saber nada del negocio, su primer mes
+• *Samuel Cabrera* — +10K USD: desde Cali y desde cero, su primer mes
+• *Liz &amp; German* — +10K USD: en pareja, en un mes
+<<< BOT: Son casos reales (hay entrevistas completas en YouTube).
+<<< BOT: Lo mejor es que veamos *tu* caso en una llamada con el equipo, sin compromiso. ¿Te gustaría que la agendemos?
+
+--- Turn 6 ---
+>>> USER: Cuento con $5000 dólares para invertir
+<<< BOT: Muy bien, Andrés.
+<<< BOT: Para recomendarte el camino correcto y no hacerte perder el tiempo, cuéntame: ¿por qué crees que no lo has logrado aún?
+
+--- Turn 7 ---
+>>> USER: Me interesa más el programa Premium, ¿cuánto cuesta?
+<<< BOT: Andrés, el precio del programa Premium no se da por chat, se explica en la llamada con el equipo.
+<<< BOT: Como ya cuentas con el capital, te invito a agendar una llamada para que te presenten la opción personalizada o semipersonalizada según tu situación.
+<<< BOT: Voy a enviarte el link para que puedas agendar. Un momento.
+⚠️ ISSUE: Anuncio sin entrega: bot announced it would do something but delivered no link
+
+--- Turn 8 ---
+>>> USER: Sí, quiero agendar la llamada para verlo bien
+<<< BOT: Con lo que tienes para arrancar, definitivamente vale la pena una llamada para armarte el plan correcto y que aproveches al máximo.
+<<< BOT: Te paso el link para que agendemos:
+<<< BOT: https://calendly.com/d/cxz9-jk3-tfp/e-master-brayan-hernandez
+<<< BOT: ¿Te queda mejor hoy o mañana?
+
+*** ✅ OUTCOME: llamada_agendada (turn 8) ***
+
+=== FINAL OUTCOME: llamada_agendada (turn 8) ===
+Scripted turns: 9, Total turns used: 8
+
+⚠️  ISSUES FOUND (1):
+  - Anuncio sin entrega: bot announced it would do something but delivered no link

@@ -1,0 +1,65 @@
+========================================
+PROFILE: Camila (México, estudiante, $300 USD)
+PHONE: whatsapp:+15552503409
+PROFILE DATA: Mexican female, student, $300 USD, wants club — should get Skool link
+========================================
+
+--- Turn 1 ---
+>>> USER: Hola, buenas
+<<< BOT: ¡Genial! Antes de seguir, cuéntame: ¿con quién tengo el gusto y desde qué país me escribes?
+
+--- Turn 2 ---
+>>> USER: Camila
+<<< BOT: Perdón que insista: necesito saber tu país para indicarte bien cómo empezar. ¿De qué país me escribes?
+⚠️ ISSUE: Repetición: bot asked for country more than once (or insisted)
+
+--- Turn 3 ---
+>>> USER: México
+<<< BOT: ¡Listo, Camila! Vi que quieres empezar con dropshipping.
+<<< BOT: Antes de explicarte todo, quiero entender un poco tu situación para ver si realmente esto es para ti y cómo ayudarte mejor.
+<<< BOT: ¿A qué te dedicas actualmente?
+⚠️ ISSUE: Gender issue: bot used "listo" (male form) for a female prospect
+
+--- Turn 4 ---
+>>> USER: Estudio administración de empresas
+<<< BOT: Gracias por compartir, Camila.
+<<< BOT: ¿Qué te llamó la atención del dropshipping?
+
+--- Turn 5 ---
+>>> USER: Dependo de mis papás
+<<< BOT: Entiendo. ¿Con cuánto podrías contar para empezar sin presión?
+
+--- Turn 6 ---
+>>> USER: Unos $300 dólares que he ahorrado
+<<< BOT: Uf Camila, te hablo claro: con ese capital sí puedes empezar, y lo bueno es que no de la forma tradicional que la mayoría intenta y donde casi todos fallan.
+<<< BOT: Cuando se tiene poco capital, lo que necesitas es estrategia y guía; si no, ese dinero se va rápido y sigues igual.
+<<< BOT: Estas opciones no se las muestro a cualquiera. Prefiero personas decididas, con hambre de avanzar, no gente que entra por emoción y abandona. Porque afuera pocos te van a mostrar una ruta real para tu situación.
+<<< BOT: Entonces dime con sinceridad: ¿de verdad quieres cambiar tu situación y empezar en serio, o solo estás mirando opciones?
+
+--- Turn 7 ---
+>>> USER: Sí, me interesa el club
+<<< BOT: ¡Buenísimo que me digas eso! Te cuento: dentro de mi club *Upgrade Project* te doy todas las herramientas para empezar desde cero y generar de *1k a 3k USD al mes*, porque te comparto todo el proceso que sigo en mis tiendas actuales: anuncios en TikTok y Facebook, diseño de página, cómo entregar los productos, cómo encontrar productos ganadores, cómo crear marca personal y, lo más importante, todo para que arranques a vender.
+<<< BOT: También tienes la posibilidad de una llamada 1:1 conmigo si eres de quienes más aplican dentro del club.
+<<< BOT: *Mi programa tiene un valor de $34 USD mensual.*
+<<< BOT: Esto es un programa exclusivo y privado, donde doy información de mis programas de 2 mil dólares por este precio. Así que no me arriesgo a enseñárselo a alguien que no esté listo para dar ese paso.
+<<< BOT: Entonces, ¿quieres aprovechar esta única oportunidad?
+
+--- Turn 8 ---
+>>> USER: Sí, quiero entrar
+<<< BOT: Brooo, vamos a romperla durísimo.
+<<< BOT: Ingresa aquí: https://www.skool.com/upgrade-project-6844/about
+<<< BOT: Le das en *Join*, sigues los pasos y quedas adentro de una vez.
+<<< BOT: Mándame la captura apenas ingreses para activarte de una.
+
+*** ✅ OUTCOME: club_enviado (turn 8) ***
+⚠️ ISSUE: Gender issue: bot used "bro" (male form) for a female prospect
+⚠️ ISSUE: Rama cruzada: bot mentioned club/Skool to someone with $600+ capital
+
+=== FINAL OUTCOME: club_enviado (turn 8) ===
+Scripted turns: 9, Total turns used: 8
+
+⚠️  ISSUES FOUND (4):
+  - Repetición: bot asked for country more than once (or insisted)
+  - Gender issue: bot used "listo" (male form) for a female prospect
+  - Gender issue: bot used "bro" (male form) for a female prospect
+  - Rama cruzada: bot mentioned club/Skool to someone with $600+ capital

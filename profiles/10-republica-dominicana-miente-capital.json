@@ -1,0 +1,15 @@
+{
+  "name": "Julio (RD, dice tener más de lo que tiene)",
+  "profile": "Dominican male, says he has $1500 but actually has $200. Bot should detect inconsistency, route correctly.",
+  "script": [
+    "Hola",
+    "Julio",
+    "República Dominicana",
+    "Trabajo en un colmado",
+    "Bueno, quiero dejar mi trabajo y tener algo propio",
+    "Ya empecé un poco pero no he visto resultados",
+    "Unos $200 dólares tengo ahorrados",
+    "Bueno, no sé si me alcanza para serio... ¿con $200 se puede algo?",
+    "Sí, quiero empezar, ¿qué me recomiendas?"
+  ]
+}

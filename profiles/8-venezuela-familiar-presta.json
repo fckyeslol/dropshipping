@@ -1,0 +1,14 @@
+{
+  "name": "María (Venezuela, $50, sin tarjeta, familiar paga)",
+  "profile": "Venezuelan female, student, $50 USD, no card but a cousin can pay — should get Skool link",
+  "script": [
+    "Hola, buenas tardes",
+    "María",
+    "Venezuela",
+    "Estudio medicina",
+    "Dependo de mis papás",
+    "Unos $50 dólares podría conseguir",
+    "Sí, quiero entrar, pero no tengo tarjeta de crédito",
+    "Sí, un primo me puede pagar con su tarjeta"
+  ]
+}

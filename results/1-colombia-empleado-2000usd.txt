@@ -1,0 +1,49 @@
+========================================
+PROFILE: Carlos (Colombia, empleado, $2000 USD)
+PHONE: whatsapp:+15558728015
+PROFILE DATA: Colombian male, employed in sales, $2000 USD to invest — should get Calendly link
+========================================
+
+--- Turn 1 ---
+>>> USER: Hola
+<<< BOT: ¡Hey! ¿Qué más? Te escribe *Brayan*.
+¿Con quién tengo el gusto y desde qué país me escribes?
+
+--- Turn 2 ---
+>>> USER: Carlos
+<<< BOT: ¡Genial! Antes de seguir, cuéntame: ¿con quién tengo el gusto y desde qué país me escribes?
+
+--- Turn 3 ---
+>>> USER: Colombia
+<<< BOT: ¡Listo, Carlos! Vi que quieres empezar con dropshipping.
+<<< BOT: Antes de explicarte todo, quiero entender un poco tu situación para ver si realmente esto es para ti y cómo ayudarte mejor.
+<<< BOT: ¿A qué te dedicas actualmente?
+
+--- Turn 4 ---
+>>> USER: Trabajo en ventas en una empresa de tecnología
+<<< BOT: Perfecto, Carlos.
+<<< BOT: ¿Qué te llamó la atención del dropshipping?
+
+--- Turn 5 ---
+>>> USER: Quiero dejar mi trabajo y tener mi propio negocio
+<<< BOT: Entiendo, Carlos.
+<<< BOT: ¿Qué te gustaría lograr con esto?
+
+--- Turn 6 ---
+>>> USER: Llevo como 6 meses viendo videos pero nunca me animé
+<<< BOT: Gracias por compartir eso, Carlos.
+<<< BOT: ¿Por qué crees que no lo has logrado aún?
+
+--- Turn 7 ---
+>>> USER: Tengo unos $2000 dólares ahorrados
+<<< BOT: Con lo que tienes para arrancar, definitivamente vale la pena una llamada para armarte el plan correcto y que aproveches al máximo.
+<<< BOT: Te paso el link para que agendemos:
+<<< BOT: https://calendly.com/d/cxz9-jk3-tfp/e-master-brayan-hernandez
+<<< BOT: ¿Te queda mejor hoy o mañana?
+
+*** ✅ OUTCOME: llamada_agendada (turn 7) ***
+
+=== FINAL OUTCOME: llamada_agendada (turn 7) ===
+Scripted turns: 9, Total turns used: 7
+
+✅ No issues detected

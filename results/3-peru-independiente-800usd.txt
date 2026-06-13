@@ -1,0 +1,56 @@
+========================================
+PROFILE: Miguel (Perú, independiente, ~800 USD)
+PHONE: whatsapp:+15556442313
+PROFILE DATA: Peruvian male, freelance designer, ~$800 USD, wants call — should get Calendly
+========================================
+
+--- Turn 1 ---
+>>> USER: Hola, qué tal
+<<< BOT: ¡Genial! Antes de seguir, cuéntame: ¿con quién tengo el gusto y desde qué país me escribes?
+
+--- Turn 2 ---
+>>> USER: Miguel
+<<< BOT: Perdón que insista: necesito saber tu país para indicarte bien cómo empezar. ¿De qué país me escribes?
+⚠️ ISSUE: Repetición: bot asked for country more than once (or insisted)
+
+--- Turn 3 ---
+>>> USER: Perú
+<<< BOT: ¡Listo, Miguel! Vi que quieres empezar con dropshipping.
+<<< BOT: Antes de explicarte todo, quiero entender un poco tu situación para ver si realmente esto es para ti y cómo ayudarte mejor.
+<<< BOT: ¿A qué te dedicas actualmente?
+
+--- Turn 4 ---
+>>> USER: Soy diseñador gráfico independiente
+<<< BOT: Perfecto, Miguel.
+<<< BOT: ¿Qué te llamó la atención del dropshipping?
+
+--- Turn 5 ---
+>>> USER: Quiero diversificar ingresos y el dropshipping me llama la atención
+<<< BOT: Entiendo, diversificar ingresos es clave.
+<<< BOT: ¿Qué te gustaría lograr con esto?
+
+--- Turn 6 ---
+>>> USER: Ganar un ingreso extra estable, tal vez unos $2000-$3000 al mes
+<<< BOT: Eso suena muy bien, Miguel.
+<<< BOT: ¿Y por qué crees que no lo has logrado aún?
+
+--- Turn 7 ---
+>>> USER: Miedo a perder plata, he visto muchos cursos estafa
+<<< BOT: Es comprensible tener esa preocupación, hay mucha información confusa por ahí.
+<<< BOT: Para recomendarte el camino correcto y no hacerte perder el tiempo, cuéntame: ¿con cuánto capital cuentas aproximadamente para invertir y arrancar tu negocio?
+
+--- Turn 8 ---
+>>> USER: Tengo como 3000 soles ahorrados (unos $800 dólares)
+<<< BOT: Excelente. Mira, no me gusta explicarte todo por aquí porque se pierde mucha información, y lo importante es que aprendas a manejar todo.
+<<< BOT: ¿Qué te parece si agendamos una reunión con el equipo y te explicamos todo por dentro?
+<<< BOT: https://calendly.com/d/cxz9-jk3-tfp/e-master-brayan-hernandez
+<<< BOT: Agendas por ahí; el equipo te va a explicar absolutamente todo el proceso y así tienes todo mucho más claro.
+<<< BOT: Avísame cuando agendes para confirmar.
+
+*** ✅ OUTCOME: llamada_agendada (turn 8) ***
+
+=== FINAL OUTCOME: llamada_agendada (turn 8) ===
+Scripted turns: 10, Total turns used: 8
+
+⚠️  ISSUES FOUND (1):
+  - Repetición: bot asked for country more than once (or insisted)

@@ -1,0 +1,9 @@
+profile,turns,outcome,notes
+"Carlos (Colombia, empleado, $2000 USD)",8,"llamada_agendada","Colombian male, employed, works in sales, has $2000 USD to invest"
+"Camila (México, estudiante, $300 USD)",7,"unknown","Mexican female, student, has $300 USD saved up"
+"Miguel (Perú, independiente, ~800 USD)",9,"llamada_agendada","Peruvian male, independent worker (freelancer designer), ~$800 USD available"
+"Lautaro (Argentina, escéptico, $600 USD)",9,"llamada_agendada","Argentinian male, works in IT, skeptical, has ~$600 USD but wants proof first"
+"Valentina (Chile, objeta precio, capital bajo)",10,"club_enviado","Chilean female, works in retail, thinks the club is expensive, has ~$200 USD"
+"Jorge (Ecuador, sin tarjeta, $100 USD)",9,"unknown","Ecuadorian male, unemployed, very low capital, no credit card"
+"Andrés (Colombia, VIP, $5000 USD)",8,"llamada_agendada","Colombian male, business owner, has $5000 USD, wants premium service"
+"María (Venezuela, $50, sin tarjeta pero Nequi)",7,"unknown","Venezuelan female, estudiante, has $50 USD, no credit card but willing to pay another way"

@@ -1,0 +1,17 @@
+{
+  "name": "Diego (Bolivia, confunde precios, $1500 USD)",
+  "profile": "Bolivian male, works in logistics, has $1500 USD but thinks it's too expensive, mixing up programs. Tests objection handling + price confusion.",
+  "script": [
+    "Hola, qué más",
+    "Diego",
+    "Bolivia",
+    "Trabajo en logística de una empresa",
+    "Quiero un negocio propio para dejar de depender de un salario",
+    "He visto que el dropshipping necesita mucha inversión",
+    "Tengo unos $1500 dólares",
+    "¿Y cuánto cuesta tu programa?",
+    "¿1500 dólares el programa? Eso es carísimo",
+    "Ah, pensé que el programa costaba eso. ¿Y el club qué incluye? No sé...",
+    "Bueno, suena bien, quiero agendar la llamada"
+  ]
+}

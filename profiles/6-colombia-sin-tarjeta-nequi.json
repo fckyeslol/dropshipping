@@ -1,0 +1,15 @@
+{
+  "name": "Pedro (Colombia, sin tarjeta, Nequi, $100 USD)",
+  "profile": "Colombian male, unemployed, $100 USD, no credit card — bot should send Nequi video then Skool link",
+  "script": [
+    "Buenas",
+    "Pedro",
+    "Colombia",
+    "No trabajo, estoy buscando algo",
+    "No tengo ingresos fijos, mis papás me ayudan",
+    "Unos $100 dólares podría conseguir",
+    "Sí, quiero empezar en serio",
+    "Sí, quiero entrar pero no tengo tarjeta de crédito",
+    "Sí, cuento con Nequi, puedo pagar así"
+  ]
+}
