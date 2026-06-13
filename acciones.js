@@ -94,10 +94,16 @@ function enviarClub(lead = {}) {
   return { ok: true, mensaje: guion.CLUB_BLOQUE };
 }
 
+// Nequi: persona de Colombia sin tarjeta → video de cómo sacar Nequi.
+function pagarNequi(lead = {}) {
+  registrarLead({ ...lead, rama: "club", subrama: "nequi", evento: "pagar_nequi", ts: new Date().toISOString() }, { tabla: false });
+  return { ok: true, mensaje: guion.PAGAR_NEQUI };
+}
+
 // Off-ramp: la persona no tiene dinero ni para el club → video gratis + seguir el canal.
 function enviarVideoGratis(lead = {}) {
   registrarLead({ ...lead, rama: "sin_dinero", evento: "video_gratis", ts: new Date().toISOString() }, { tabla: false });
   return { ok: true, mensaje: guion.VIDEO_GRATIS };
 }
 
-module.exports = { agendarLlamada, enviarClub, enviarVideoGratis, registrarLead, reportarSeguimiento, pareceNombreValido };
+module.exports = { agendarLlamada, enviarClub, pagarNequi, enviarVideoGratis, registrarLead, reportarSeguimiento, pareceNombreValido };

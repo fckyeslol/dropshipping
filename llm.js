@@ -71,6 +71,24 @@ const TOOLS = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "pagar_nequi",
+      description:
+        "Úsala cuando la persona es de COLOMBIA y dice que NO tiene tarjeta de crédito para pagar el club ($34/mes). NO la uses si no es de Colombia. Devuelve el mensaje EXACTO con las instrucciones de Nequi y el link del video de cómo sacarla. Después de este mensaje, la persona confirma si ya tiene/puede sacar Nequi y ahí llamas enviar_club.",
+      parameters: {
+        type: "object",
+        properties: {
+          nombre: { type: "string", description: "nombre real de la persona" },
+          pais: { type: "string" },
+          ocupacion: { type: "string" },
+          notas: { type: "string", description: "resumen breve de su caso" },
+        },
+        required: [],
+      },
+    },
+  },
 ];
 
 const MODELO = process.env.OPENAI_MODEL || "gpt-4o-mini";
@@ -168,7 +186,7 @@ function construirSystemPrompt(contexto, meta = {}) {
     `6) PRESENTA EL CLUB (usa este texto casi igual): "${guion.CLUB_PRESENTACION}"`,
     "   • Si responde que SÍ quiere entrar / aceptar / 'quiero pagar' / 'pagar ahora' / 'cómo pago' → llama YA a la herramienta enviar_club (entrega el link de Skool). 'Quiero pagar' significa que SÍ tiene cómo pagar: dale el link, NUNCA le preguntes por tarjeta, forma de pago ni familiares.",
     "   • SOLO si la persona dice EXPLÍCITAMENTE que NO tiene tarjeta o que no sabe cómo pagar (con esas palabras; NO lo asumas tú, NO lo deduzcas del contexto, espera a que lo diga textual), ramifica POR PAÍS (ya sabes el país del paso 1). Elige la rama por el país, NO mezcles:",
-    `       – Si es de COLOMBIA → usa este texto casi igual (incluye el link del video TAL CUAL): "${guion.PAGAR_NEQUI}" → cuando confirme que ya puede pagar, usa la herramienta enviar_club. (En Colombia NO ofrezcas lo del familiar.)`,
+    `       – Si es de COLOMBIA → LLAMA la herramienta pagar_nequi (ella entrega el mensaje EXACTO con las instrucciones y el link del video).`,
     `       – Si NO es de Colombia → usa este texto casi igual: "${guion.PEDIR_FAMILIAR}" → si un familiar le presta/paga → usa la herramienta enviar_club. → si NADIE le puede prestar → NO escribas ningún link tú mismo: llama la herramienta enviar_video_gratis (ella manda el video correcto).`,
     "7) SI NO TIENE NI PARA EL CLUB ($34): si deja claro que no tiene nada de dinero, NO insistas — usa la herramienta enviar_video_gratis para mandarle un video gratis e invitarlo a seguir el canal, con calidez.",
     `8) SI PIDE CONTENIDO / PRUEBAS / EJEMPLOS, quiere 'ver más', o DUDA de que sea real ('¿es estafa?', 'suena raro'): comparte tu prueba social REAL (Instagram con los casos) con este texto casi igual: "${guion.PRUEBAS}". NUNCA mandes el video gratis para esto: el video gratis es SOLO para quien no tiene dinero. Pedir pruebas NO es lo mismo que no tener plata.`,
@@ -208,6 +226,7 @@ function ejecutarTool(tc, meta) {
   if (tc.function?.name === "agendar_llamada") return acciones.agendarLlamada({ ...args, ...meta });
   if (tc.function?.name === "enviar_club") return acciones.enviarClub({ ...args, ...meta });
   if (tc.function?.name === "enviar_video_gratis") return acciones.enviarVideoGratis({ ...args, ...meta });
+  if (tc.function?.name === "pagar_nequi") return acciones.pagarNequi({ ...args, ...meta });
   return { ok: false, motivo: "herramienta desconocida" };
 }
 
