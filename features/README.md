@@ -49,6 +49,7 @@ y anti-link inventado (transversales).
 | CAMBIO-11 · objeción "estafa" post-cierre | ✅ aplicado (código) | "estafa"/legitimidad agregadas al trigger de pruebas: responde casos+Instagram en cualquier rama y aun tras el cierre. Antes, en rama llamada, el bot ignoraba la objeción y repetía "¿ya agendaste?" |
 | CAMBIO-12 · prompt consciente del cierre | ✅ en producción | `meta.cerrado` → el LLM responde dudas post-cierre sin re-pegar el link. Redujo (no eliminó) los loops |
 | CAMBIO-13 · garantía anti-loop post-cierre | ✅ en producción | `responderSinCierre()` (LLM sin herramientas) cuando la anti-repetición detecta re-cierre sobre una pregunta. **60/60 objeciones post-cierre sin loop** (llamada/VIP/club). Test: `tests/postcierre-e2e.js` |
+| CAMBIO-14 · no ramificar sin capital | ✅ aplicado (código) | el LLM saltaba al puente/club ("con ese capital…") sin haber preguntado el capital. Guard en `index.js`: si `capitalUSD==null` y el LLM puentea/cierra → fuerza la pregunta de capital primero |
 | CAMBIO-06 · regex `detectarPais` | ❎ no reproducible → cerrado | 9/9 frases nombre+país detectan bien; era CAMBIO-05 |
 | CAMBIO-07 · obj 11 → Instagram | ✅ aplicado (guion) | re-test con agente |
 | CAMBIO-08 · obj 15 → sin "equipo" | ✅ aplicado (guion) | re-test con agente |

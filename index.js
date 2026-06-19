@@ -498,6 +498,19 @@ async function procesarMensaje(mensajeUsuario, sesion, meta = {}) {
   if (sesion.cerrado) metaLLM.cerrado = sesion.cerrado;
   let respuestaLLM = await llm.responder(mensajeUsuario, sesion.historial, metaLLM);
   if (respuestaLLM) {
+    // GUARD (CAMBIO-14): NO ramificar ni cerrar sin un capital conocido.
+    // La rama (club/llamada) es una decisión crítica que depende del capital
+    // en USD. Si el LLM salta al puente/club/Calendly SIN que la persona haya
+    // dado una cifra (capitalUSD == null), es incoherente ("con ese capital..."
+    // sin capital). Forzamos la pregunta de capital primero.
+    if (sesion.capitalUSD == null && !sesion.cerrado) {
+      const ramificaSinCapital =
+        [guion.PUENTE_CLUB, guion.CLUB_PRESENTACION, guion.CALENDLY_BLOQUE,
+         guion.CALENDLY_BLOQUE_VIP, guion.CLUB_BLOQUE].includes(respuestaLLM) ||
+        /con ese capital|poco capital|quieres cambiar tu situaci|solo est[aá]s mirando opciones/i.test(respuestaLLM);
+      if (ramificaSinCapital) respuestaLLM = guion.PREGUNTA_CAPITAL;
+    }
+
     // Anti-repetición del CIERRE: si el bot ya entregó un bloque de cierre
     // (Calendly / club / video) y lo vuelve a generar, NO repetimos el bloque
     // con el link; respondemos algo corto de confirmación. Así no spameamos el
