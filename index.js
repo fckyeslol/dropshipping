@@ -76,27 +76,10 @@ function delaySaludoMs() {
   return Math.floor(min + Math.random() * (max - min));
 }
 
-// ───────── Sesiones en memoria ─────────
-const sesiones = new Map();
-const SESION_TTL_MS = 60 * 60 * 1000; // 1 hora
-
-function obtenerSesion(id) {
-  const ahora = Date.now();
-  let s = sesiones.get(id);
-  if (!s) {
-    s = { historial: [], saludado: false, visto: ahora };
-    sesiones.set(id, s);
-  }
-  s.visto = ahora;
-  return s;
-}
-
-function limpiarSesiones() {
-  const ahora = Date.now();
-  for (const [id, s] of sesiones) {
-    if (ahora - s.visto > SESION_TTL_MS) sesiones.delete(id);
-  }
-}
+// ───────── Sesiones (CAMBIO-05b) ─────────
+// Backend Redis si hay REDIS_URL (compartido entre pods), si no memoria local.
+// Mismo TTL de 1 hora. La API es async: store.cargar / store.guardar / store.limpiar.
+const store = require("./sesionStore");
 
 // Saludos "puros" y comandos de reinicio.
 const SALUDOS = [
@@ -500,12 +483,12 @@ async function procesarMensaje(mensajeUsuario, sesion, meta = {}) {
 
 // ───────── Webhook de Twilio (WhatsApp) ─────────
 app.post("/webhook", async (req, res) => {
-  limpiarSesiones();
+  store.limpiar();
 
   const id = req.body.From || "anon";
   const telefono = id.replace(/^whatsapp:/, "");
   const entrante = req.body.Body || "";
-  const sesion = obtenerSesion(id);
+  const sesion = await store.cargar(id);
 
   // SEGUIMIENTO: reporta el PRIMER contacto (base para re-contactar a quien no agenda).
   if (!sesion.contactoReportado) {
@@ -525,6 +508,7 @@ app.post("/webhook", async (req, res) => {
   const esSaludo = SALUDOS.includes(normalizar(entrante));
   if (esSaludo && !sesion.saludado && puedeEnviar() && saludoDiferidoActivo() && !SALUDO_AUDIO_URL) {
     sesion.saludado = true;
+    await store.guardar(id, sesion); // persiste el saludado (puede caer en otro pod)
     res.type("text/xml").send(new MessagingResponse().toString()); // ack vacío
     setTimeout(() => {
       enviarWhatsapp(id, guion.SALUDO).catch((e) =>
@@ -542,6 +526,7 @@ app.post("/webhook", async (req, res) => {
     console.error("Error procesando mensaje:", err.message);
     respuesta = guion.SALUDO;
   }
+  await store.guardar(id, sesion);
 
   const twiml = new MessagingResponse();
   if (typeof respuesta === "string") {
@@ -561,12 +546,12 @@ app.post("/webhook", async (req, res) => {
 // formato "v2" que ManyChat renderiza como burbujas (más un campo "respuesta"
 // plano por si prefieres mapearlo a un solo mensaje). Misma lógica que WhatsApp.
 app.post("/api/manychat", async (req, res) => {
-  limpiarSesiones();
+  store.limpiar();
   try {
     const usuario = String(req.body.usuario || req.body.user_id || "anon");
     const mensaje = String(req.body.mensaje || req.body.text || "");
     const id = "ig:" + usuario;
-    const sesion = obtenerSesion(id);
+    const sesion = await store.cargar(id);
 
     // Seguimiento: primer contacto (canal instagram).
     if (!sesion.contactoReportado) {
@@ -588,6 +573,7 @@ app.post("/api/manychat", async (req, res) => {
       console.error("Error procesando (manychat):", err.message);
       respuesta = guion.SALUDO;
     }
+    await store.guardar(id, sesion);
 
     // En IG mandamos texto. Si el saludo viene en audio (config de WhatsApp), usamos texto.
     const base = typeof respuesta === "string" ? respuesta : guion.SALUDO;

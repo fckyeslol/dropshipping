@@ -44,7 +44,7 @@ y anti-link inventado (transversales).
 | CAMBIO-03 · contador `vecesPidioPais` | ✅ aplicado | unit OK (reintento tras saludo, conserva "faltan ambos") |
 | CAMBIO-04 · precio Premium directo | ✅ aplicado (prompt) | decisión: cumplir spec — da $1.500 si preguntan directo + reencauza |
 | CAMBIO-05 · retry 429 | ✅ aplicado (código) | backoff 3x ante 429/5xx en `llm.js`; ya no cae a SALUDO por rate-limit |
-| CAMBIO-05b · sesión compartida (Redis/sticky) | ⏳ infra (deploy) | pendiente: aplicar en Railway (ver backlog) |
+| CAMBIO-05b · sesión compartida (Redis) | ✅ aplicado (código) | `sesionStore.js`: Redis si hay REDIS_URL, fallback memoria. Persistencia e2e verificada. Falta provisionar Redis + env var en Railway |
 | CAMBIO-06 · regex `detectarPais` | ❎ no reproducible → cerrado | 9/9 frases nombre+país detectan bien; era CAMBIO-05 |
 | CAMBIO-07 · obj 11 → Instagram | ✅ aplicado (guion) | re-test con agente |
 | CAMBIO-08 · obj 15 → sin "equipo" | ✅ aplicado (guion) | re-test con agente |
@@ -106,15 +106,19 @@ Orden de ataque: primero `@critico`/infra (01, 05, 02), luego el resto.
   ante 429 y 5xx, en las 3 llamadas al LLM. Ya no se pierde la respuesta (ni el
   contexto) por un rate-limit puntual.
 
-### CAMBIO-05b · Sesión compartida  `@critico`  ⏳ INFRA (pendiente de deploy)
+### CAMBIO-05b · Sesión compartida  `@critico`  ✅ CÓDIGO LISTO (falta env en Railway)
 - Reportado por C, D, E, G de forma independiente.
 - Síntoma: estado en memoria (Map JS) + 2 pods en Railway sin sticky sessions →
   turnos consecutivos caen en pods distintos y la sesión se reinicia.
-- Impacto: rompe la calificación de un usuario real; confounder de varios
-  `@parcial` (G5, E3, E4) y probable causa del falso CAMBIO-06.
-- Acción (deploy, no código de app): almacén de sesión compartido (Redis) o
-  habilitar sticky sessions en Railway. Mientras tanto, escalar a 1 pod reduce
-  el síntoma.
+- Fix aplicado: nuevo `sesionStore.js` con API async (`cargar`/`guardar`/
+  `limpiar`). Si hay `REDIS_URL` usa Redis (TTL 1h, compartido entre pods); si
+  no, cae a memoria (idéntico al comportamiento previo). `index.js` ahora
+  carga/guarda la sesión por cada mensaje en ambos webhooks. Dependencia `redis`
+  añadida. Persistencia e2e verificada (memoria): el 2º turno recuerda el
+  nombre/país, ya no re-saluda.
+- PASO FINAL (tú, en Railway): crear un Redis (plugin de Railway, 1 clic) y
+  pegar su `REDIS_URL` en las variables. Sin esa env var sigue en memoria; el
+  parche gratis alternativo es escalar a 1 pod.
 
 ### CAMBIO-06 · `detectarPais` con nombre+país  ❎ CERRADO (no reproducible)
 - Probado con 9 frases nombre+país ("soy carlos de colombia", "Soy Camila, de
