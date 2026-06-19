@@ -334,6 +334,14 @@ const NO_NOMBRES = new Set([
 // "ni los 34" o "ni para el club", no un simple "no tengo el dinero".
 const SIN_NADA_RE =
   /\bni (para )?(los |el |unos )?(34|35|treinta y cuatro|club)\b|no tengo nada de (dinero|plata)|no tengo nada,?\s*(ni|para)|no tengo ni para (el club|los 34|empezar|eso)|no me alcanza ni (para|los)|no tengo (ni un peso|nada ahorita ni|absolutamente nada)|estoy en (cero|ceros)/i;
+
+// CAMBIO-10: "no tengo tarjeta" → en COLOMBIA el cierre es Nequi (determinístico,
+// el LLM lo confundía con la objeción de efectivo o lo ruteaba a familiar).
+const SIN_TARJETA_RE =
+  /(no tengo|sin|no cuento con|no poseo|no manejo)\s*(ninguna\s*|una\s*)?tarjeta|no tengo (con qu[eé]|forma de|c[oó]mo) pagar/i;
+// Confirmación de que ya tiene/sacó la Nequi (o pide el link) → cerrar con el club.
+const NEQUI_LISTA_RE =
+  /(ya (la )?(tengo|saqu[eé]|cre[eé]|abr[ií]|hice|active)|ya tengo (la )?nequi|lista la nequi|nequi lista|ya puedo pagar|mandame el? link|c[oó]mo pago|quiero pagar)/i;
 function detectarNombre(texto) {
   const t = normalizar(texto);
   const m = t.match(/(?:me llamo|mi nombre es|soy)\s+([a-zñ]{3,})/);
@@ -435,6 +443,36 @@ async function procesarMensaje(mensajeUsuario, sesion, meta = {}) {
     sesion.historial.push({ role: "assistant", content: r.mensaje });
     if (sesion.historial.length > 40) sesion.historial = sesion.historial.slice(-40);
     return r.mensaje;
+  }
+
+  // 2.6) PAGO SIN TARJETA EN COLOMBIA → Nequi (determinístico, CAMBIO-10).
+  //      El pago por país es decisión crítica: no la deja al LLM (confundía
+  //      "no tengo tarjeta" con la objeción de efectivo, o ruteaba a familiar).
+  //      Solo aplica en rama club (capital < $600) y para Colombia.
+  const enRamaClub = sesion.capitalUSD != null && ramaPorCapital(sesion.capitalUSD) === "club";
+  const esColombia = /colombia/i.test(sesion.pais || "");
+  if (esColombia && (enRamaClub || sesion.esperaNequi)) {
+    // (a) Ya le mostramos Nequi y confirma que la tiene / pide el link → club.
+    if (sesion.esperaNequi && NEQUI_LISTA_RE.test(texto) && sesion.nombre) {
+      const r = acciones.enviarClub({ nombre: sesion.nombre, pais: sesion.pais });
+      if (r.ok && r.mensaje) {
+        sesion.esperaNequi = false;
+        sesion.cerrado = "club";
+        sesion.historial.push({ role: "user", content: mensajeUsuario });
+        sesion.historial.push({ role: "assistant", content: r.mensaje });
+        if (sesion.historial.length > 40) sesion.historial = sesion.historial.slice(-40);
+        return r.mensaje;
+      }
+    }
+    // (b) Dice que no tiene tarjeta → entrega Nequi (con el video de cómo sacarla).
+    if (SIN_TARJETA_RE.test(texto)) {
+      const r = acciones.pagarNequi({ nombre: sesion.nombre, pais: sesion.pais });
+      sesion.esperaNequi = true;
+      sesion.historial.push({ role: "user", content: mensajeUsuario });
+      sesion.historial.push({ role: "assistant", content: r.mensaje });
+      if (sesion.historial.length > 40) sesion.historial = sesion.historial.slice(-40);
+      return r.mensaje;
+    }
   }
 
   // 3) Todo lo demás lo lleva el LLM (Brayan), con E-Master como contexto.

@@ -44,7 +44,8 @@ y anti-link inventado (transversales).
 | CAMBIO-03 · contador `vecesPidioPais` | ✅ aplicado | unit OK (reintento tras saludo, conserva "faltan ambos") |
 | CAMBIO-04 · precio Premium directo | ✅ aplicado (prompt) | decisión: cumplir spec — da $1.500 si preguntan directo + reencauza |
 | CAMBIO-05 · retry 429 | ✅ aplicado (código) | backoff 3x ante 429/5xx en `llm.js`; ya no cae a SALUDO por rate-limit |
-| CAMBIO-05b · sesión compartida (Redis) | ✅ aplicado (código) | `sesionStore.js`: Redis si hay REDIS_URL, fallback memoria. Persistencia e2e verificada. Falta provisionar Redis + env var en Railway |
+| CAMBIO-05b · sesión compartida (Redis) | ✅ en producción | `sesionStore.js` + REDIS_URL en Railway. Persistencia confirmada (6 turnos sin reinicio entre pods) |
+| CAMBIO-10 · pago sin tarjeta CO → Nequi | ✅ aplicado (código) | gate determinístico en `index.js`: Colombia + rama club + "sin tarjeta" → Nequi → confirma → Skool. El LLM lo confundía con la objeción de efectivo. D1/D2/D3/A3 verificados |
 | CAMBIO-06 · regex `detectarPais` | ❎ no reproducible → cerrado | 9/9 frases nombre+país detectan bien; era CAMBIO-05 |
 | CAMBIO-07 · obj 11 → Instagram | ✅ aplicado (guion) | re-test con agente |
 | CAMBIO-08 · obj 15 → sin "equipo" | ✅ aplicado (guion) | re-test con agente |

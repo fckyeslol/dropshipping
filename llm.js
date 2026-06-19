@@ -429,6 +429,12 @@ async function responder(mensajeUsuario, historial = [], meta = {}) {
       if (!dijoSinTarjeta) {
         const directo = await forzarHerramienta(api, opciones, "enviar_club", meta);
         if (directo) return directo;
+      } else if (/colombia/i.test(meta.pais || "")) {
+        // CAMBIO-10: en COLOMBIA el cierre sin tarjeta es Nequi, NO familiar.
+        // Si el modelo ofreció familiar a un colombiano, lo corregimos a Nequi
+        // (la herramienta entrega el texto exacto con el video de cómo sacarla).
+        const directo = await forzarHerramienta(api, opciones, "pagar_nequi", meta);
+        if (directo) return directo;
       }
     }
 
