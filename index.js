@@ -493,6 +493,9 @@ async function procesarMensaje(mensajeUsuario, sesion, meta = {}) {
     metaLLM.capitalUSD = Math.round(sesion.capitalUSD);
     metaLLM.rama = ramaPorCapital(sesion.capitalUSD);
   }
+  // CAMBIO-12: si ya entregamos un cierre, el LLM debe RESPONDER dudas
+  // post-cierre (no re-pegar el link ni caer en el loop "¿ya agendaste?").
+  if (sesion.cerrado) metaLLM.cerrado = sesion.cerrado;
   let respuestaLLM = await llm.responder(mensajeUsuario, sesion.historial, metaLLM);
   if (respuestaLLM) {
     // Anti-repetición del CIERRE: si el bot ya entregó un bloque de cierre

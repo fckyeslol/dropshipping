@@ -145,6 +145,9 @@ function construirSystemPrompt(contexto, meta = {}) {
     ...(meta && meta.pais
       ? [`DATO YA CONFIRMADO: la persona es de ${meta.pais}. NO le vuelvas a preguntar el país. Úsalo para el cierre del club (Nequi si es de Colombia, familiar si NO) y pásalo SIEMPRE en el argumento 'pais' de las herramientas.`, ""]
       : []),
+    ...(meta && meta.cerrado
+      ? [`YA ENTREGASTE EL CIERRE (${meta.cerrado === "llamada" ? "el link de Calendly" : meta.cerrado === "club" ? "el link del club" : "el video gratis"}). A partir de aquí: si la persona solo CONFIRMA o agradece ('listo', 'ya agendé', 'ya entré', 'gracias', 'ok'), responde CORTO y cálido SIN volver a pegar el link. Si PREGUNTA u OBJETA algo (precio, qué incluye, cuánto dura, garantía, si es estafa, si la atiendes tú o el equipo, etc.), RESPÓNDELE esa duda con tu guion correspondiente y reencauza con naturalidad, pero NO vuelvas a pegar el link ni llames otra vez a la herramienta de cierre. PROHIBIDO responder a una pregunta o duda con '¿ya agendaste?' / '¿ya entraste?': eso es ignorar a la persona.`, ""]
+      : []),
     ...(meta && meta.nombre
       ? [`DATO YA CONFIRMADO: la persona se llama ${meta.nombre}. NO le vuelvas a preguntar el nombre. Úsalo con naturalidad en la conversación, adapta el género de tus palabras a ese nombre y pásalo SIEMPRE en el argumento 'nombre' de las herramientas.`, ""]
       : []),
