@@ -508,11 +508,28 @@ async function procesarMensaje(mensajeUsuario, sesion, meta = {}) {
       respuestaLLM === guion.VIDEO_GRATIS ? "video" : null;
 
     if (tipoCierre && sesion.cerrado === tipoCierre) {
-      // Ya se entregó este cierre: en vez de repetir el link, hacemos SEGUIMIENTO.
-      respuestaLLM =
-        tipoCierre === "llamada" ? "¿Ya pudiste agendar en el link, bro? Avísame apenas lo hagas y lo confirmamos." :
-        tipoCierre === "club" ? "¿Ya pudiste entrar al club? Mándame la captura apenas estés adentro y te activo de una." :
-        "¡Listo, bro! Cualquier cosa por aquí estoy.";
+      // Ya se entregó este cierre y el modelo lo intentó repetir. Distinguimos:
+      //  • CONFIRMA / agradece → seguimiento corto (no repetir el link).
+      //  • PREGUNTA / OBJETA  → responder la duda SIN re-cerrar (CAMBIO-13),
+      //    para no caer en el loop "¿ya agendaste?" ignorando a la persona.
+      const esConfirmacion =
+        !/\?/.test(mensajeUsuario) &&
+        /\b(listo|ok|oka|okey|okis|dale|vale|hecho|gracias|ya (agend|qued|entr|reserv|lo hice|la saqu|lo saqu|pagu)|ya esta|de una|sale|perfecto|genial|buenisimo)\b/i.test(texto) &&
+        !/(cuanto|c[oó]mo|qu[eé] |por qu|porqu|qui[eé]n|d[oó]nde|cu[aá]ndo|garant|estafa|incluye|dura|funciona|tarjeta|robar|\breal\b|confiable|legal|arrepien|despu[eé]s|precio|cuesta|sirve|duda|pregunt)/i.test(texto);
+      if (esConfirmacion) {
+        respuestaLLM =
+          tipoCierre === "llamada" ? "¡De una! Avísame apenas agendes y lo confirmamos." :
+          tipoCierre === "club" ? "¡Perfecto! Mándame la captura apenas estés adentro y te activo." :
+          "¡Listo! Cualquier cosa por aquí estoy.";
+      } else {
+        const resp2 = await llm.responderSinCierre(mensajeUsuario, sesion.historial, metaLLM);
+        // Si por lo que sea volviera a colar un link, no lo reenviamos.
+        const limpio = resp2 && !/calendly\.com|skool\.com/i.test(resp2) ? resp2 : null;
+        respuestaLLM = limpio ||
+          (tipoCierre === "llamada"
+            ? "Claro, dime qué duda tienes y te explico antes de la reunión."
+            : "Claro, cuéntame qué duda tienes y la resolvemos.");
+      }
     } else if (tipoCierre) {
       sesion.cerrado = tipoCierre;
     }

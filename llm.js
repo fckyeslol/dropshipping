@@ -448,4 +448,35 @@ async function responder(mensajeUsuario, historial = [], meta = {}) {
   }
 }
 
-module.exports = { responder, disponible: () => !!getCliente() };
+// CAMBIO-13: responder una duda/objeción DESPUÉS del cierre, SIN herramientas
+// (no puede re-cerrar) y SIN re-pegar el link. Garantía determinística contra
+// el loop "¿ya agendaste?": si el modelo re-cerró ante una pregunta, lo
+// re-llamamos aquí para que responda la duda de verdad.
+async function responderSinCierre(mensajeUsuario, historial = [], meta = {}) {
+  const api = getCliente();
+  if (!api) return null;
+  const chunks = buscarContexto(mensajeUsuario, 4);
+  const contexto = chunks.map((c) => "• " + c.texto).join("\n");
+  const sys =
+    construirSystemPrompt(contexto, meta) +
+    "\n\nIMPORTANTE: YA entregaste el link de cierre antes en esta conversación. NO lo vuelvas a enviar y NO llames ninguna herramienta. La persona te hizo una PREGUNTA u OBJECIÓN: respóndela directamente en 1-3 líneas con tu guion correspondiente y reencauza con calidez (sin volver a pegar el link). PROHIBIDO responder con '¿ya agendaste?' o '¿ya entraste?'.";
+  const mensajes = [
+    { role: "system", content: sys },
+    ...historial.slice(-24),
+    { role: "user", content: mensajeUsuario },
+  ];
+  try {
+    const resp = await crearConReintento(api, {
+      model: MODELO,
+      messages: mensajes,
+      temperature: 0.5,
+      max_tokens: 320,
+    }); // sin `tools`: no puede re-cerrar
+    return resp.choices?.[0]?.message?.content?.trim() || null;
+  } catch (e) {
+    console.error("Error en responderSinCierre:", e.message);
+    return null;
+  }
+}
+
+module.exports = { responder, responderSinCierre, disponible: () => !!getCliente() };
