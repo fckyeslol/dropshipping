@@ -19,4 +19,9 @@ Thumbs.db
 .vscode/
 .idea/
 
+# Reportes de pruebas (output transitorio) y scratch de agentes
+tests/reporte-*.json
+tests/test-grupo-d*.js
+tests/manual-T1-antirama.js
+
 # OJO: .env.example SÍ se sube (es la plantilla sin secretos)

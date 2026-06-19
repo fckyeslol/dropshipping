@@ -9,6 +9,7 @@
 //    menciona que hay entrevistas (no inventa URLs).
 
 const CANAL_YOUTUBE = ""; // opcional: link del canal de Brayan
+const { INSTAGRAM_URL } = require("./guion");
 
 const CASOS = [
   { nombre: "Andrés Galíndez", logro: "+10K USD", detalle: "de empleado en un parqueadero a su primer mes", video: "" },
@@ -32,6 +33,10 @@ function testimonios() {
     "*Algunos resultados de estudiantes de E-Master:*\n\n" +
     lista +
     "\n\nSon casos reales (hay entrevistas completas en YouTube).";
+
+  // CAMBIO-07: incluir SIEMPRE el Instagram con los casos. Es la prueba social
+  // verificable que pide la objeción "¿esto es real / no será estafa?".
+  if (INSTAGRAM_URL) texto += `\n\nMira los casos, entrevistas y el día a día aquí:\n${INSTAGRAM_URL}`;
 
   if (CANAL_YOUTUBE) texto += `\n${CANAL_YOUTUBE}`;
 

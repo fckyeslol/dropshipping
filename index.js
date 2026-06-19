@@ -325,6 +325,13 @@ const NO_NOMBRES = new Set([
   "de", "del", "la", "el", "un", "una", "desde", "muy", "mas",
   "interesado", "interesada", "nuevo", "nueva", "yo", "alguien",
   "estudiante", "emprendedor", "emprendedora",
+  // Apodos/saludos que NO son un nombre real (CAMBIO-02). detectarNombre corre
+  // antes del LLM, así que el filtro debe vivir aquí, no solo en el prompt.
+  "parce", "parcero", "parcera", "bro", "brother", "broder", "brou",
+  "hermano", "hermana", "mano", "manito", "pana", "compa", "compadre",
+  "comadre", "loco", "men", "papi", "papá", "papa", "mami", "rey", "reina",
+  "crack", "capo", "jefe", "jefa", "amigo", "amiga", "socio", "socia",
+  "llave", "primo", "prima", "vale", "mijo", "mija", "causa", "wey", "güey",
   // Ocupaciones comunes ("soy enfermera" NO es un nombre):
   "enfermera", "enfermero", "doctor", "doctora", "medico", "medica",
   "ingeniero", "ingeniera", "abogado", "abogada", "profesor", "profesora",
@@ -336,6 +343,14 @@ const NO_NOMBRES = new Set([
   "agricultor", "agricultora", "desempleado", "desempleada", "freelancer",
   "trabajador", "trabajadora", "tecnico", "tecnica", "operario", "operaria",
 ]);
+
+// CAMBIO-01: señal determinística de que la persona NO tiene NADA, ni para el
+// club ($34). Es el off-ramp (video gratis). NARROW a propósito: NO debe pisar
+// la objeción #2 "no tengo el dinero [ahora]" (empuje al club) ni el sub-flujo
+// de "no tengo tarjeta" (Nequi/familiar). Por eso exige "nada de dinero",
+// "ni los 34" o "ni para el club", no un simple "no tengo el dinero".
+const SIN_NADA_RE =
+  /\bni (para )?(los |el |unos )?(34|35|treinta y cuatro|club)\b|no tengo nada de (dinero|plata)|no tengo nada,?\s*(ni|para)|no tengo ni para (el club|los 34|empezar|eso)|no me alcanza ni (para|los)|no tengo (ni un peso|nada ahorita ni|absolutamente nada)|estoy en (cero|ceros)/i;
 function detectarNombre(texto) {
   const t = normalizar(texto);
   const m = t.match(/(?:me llamo|mi nombre es|soy)\s+([a-zñ]{3,})/);
@@ -367,6 +382,9 @@ async function procesarMensaje(mensajeUsuario, sesion, meta = {}) {
     sesion.pais = null; // reinicia el gate del país
     sesion.nombre = null; // reinicia el nombre capturado
     sesion.capitalUSD = null; // reinicia el capital capturado
+    // CAMBIO-03: el SALUDO ya pregunta el país; cuenta como 1ra pregunta para
+    // que el primer país inválido posterior dispare la repregunta variada.
+    sesion.vecesPidioPais = 1;
     return saludoResp();
   }
 
@@ -387,13 +405,21 @@ async function procesarMensaje(mensajeUsuario, sesion, meta = {}) {
     // Si ya preguntamos el país y la respuesta no se reconoció (p. ej. una
     // ciudad que no está en LUGARES), repreguntamos con otra frase en vez de
     // repetir el mismo mensaje como un robot.
-    const ultimo = sesion.historial[sesion.historial.length - 1];
-    const yaPregunto =
-      ultimo && ultimo.role === "assistant" &&
-      [guion.PREGUNTA_PAIS, guion.PREGUNTA_NOMBRE_PAIS, guion.PREGUNTA_PAIS_REINTENTO].includes(ultimo.content);
-    const pregunta = yaPregunto
-      ? guion.PREGUNTA_PAIS_REINTENTO
-      : (sesion.nombre ? guion.PREGUNTA_PAIS : guion.PREGUNTA_NOMBRE_PAIS);
+    // CAMBIO-03: el reintento depende de un contador de sesión, no del último
+    // mensaje del historial (el branch de saludo no escribe historial, así que
+    // el 1er país inválido tras un saludo no se trataba como reintento).
+    const yaPregunto = (sesion.vecesPidioPais || 0) >= 1;
+    let pregunta;
+    if (!sesion.nombre) {
+      // Si aún falta el nombre, siempre pedimos los dos juntos (nunca saltamos
+      // a la repregunta de solo-país y perdemos el nombre).
+      pregunta = guion.PREGUNTA_NOMBRE_PAIS;
+    } else if (yaPregunto) {
+      pregunta = guion.PREGUNTA_PAIS_REINTENTO;
+    } else {
+      pregunta = guion.PREGUNTA_PAIS;
+    }
+    sesion.vecesPidioPais = (sesion.vecesPidioPais || 0) + 1;
     sesion.historial.push({ role: "user", content: mensajeUsuario });
     sesion.historial.push({ role: "assistant", content: pregunta });
     if (sesion.historial.length > 40) sesion.historial = sesion.historial.slice(-40);
@@ -408,6 +434,24 @@ async function procesarMensaje(mensajeUsuario, sesion, meta = {}) {
     !PALABRAS_GARANTIA.some((p) => texto.includes(p))
   ) {
     return resultados.testimonios();
+  }
+
+  // 2.5) OFF-RAMP determinístico (CAMBIO-01): la persona deja claro que no tiene
+  //      NADA, ni para el club ($34). Antes el LLM seguía empujando el club y
+  //      caía en loop ("¿Ya pudiste entrar al club?"). Aquí cortamos con calidez
+  //      y entregamos el video gratis (registra el lead como sin_dinero).
+  if (SIN_NADA_RE.test(texto)) {
+    sesion.historial.push({ role: "user", content: mensajeUsuario });
+    if (sesion.cerrado === "video") {
+      const corto = "¡Listo, bro! Cualquier cosa por aquí estoy.";
+      sesion.historial.push({ role: "assistant", content: corto });
+      return corto;
+    }
+    const r = acciones.enviarVideoGratis({ nombre: sesion.nombre, pais: sesion.pais });
+    sesion.cerrado = "video";
+    sesion.historial.push({ role: "assistant", content: r.mensaje });
+    if (sesion.historial.length > 40) sesion.historial = sesion.historial.slice(-40);
+    return r.mensaje;
   }
 
   // 3) Todo lo demás lo lleva el LLM (Brayan), con E-Master como contexto.

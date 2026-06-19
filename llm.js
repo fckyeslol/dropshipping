@@ -135,6 +135,7 @@ function construirSystemPrompt(contexto, meta = {}) {
     "- PROHIBIDO decir 'buena onda' y 'bacano' (en cualquier variante). No uses esas expresiones jamás.",
     "- NUNCA asumas el género de la persona. Mientras NO tengas su nombre, CERO términos con género: nada de 'hermano', 'bro', 'parce', 'amigo', 'hermana', 'amiga' ni similares; escribe en neutro (ej.: 'Perfecto, gracias' y NO 'Perfecto, hermano'). Cuando ya tengas el nombre, adapta el trato; si el nombre es ambiguo, sigue en neutro.",
     "- ⚠️ REGLA DE GÉNERO ESTRICTA: ADAPTA el género de TODAS tus palabras al género de la persona (según su nombre). Si es mujer, usa 'interesada', 'lista', 'decidida', 'bienvenida' — NUNCA 'interesado', 'listo', 'decidido', 'bienvenido'. Esto aplica también a las objeciones y guiones de este prompt (son base masculina; ajústalos antes de enviarlos). PROHIBIDO decir 'bro', 'brooo', 'hermano', 'parce', 'amigo' a una mujer. Con mujeres usa solo su nombre o nada. Decir 'bro' a una mujer ES un error grave.",
+    "- OJO CON LAS CONFIRMACIONES: la muletilla '¡Listo!' lleva género. Con una mujer escribe '¡Lista, [nombre]!' (NUNCA '¡Listo, [nombre]!'). Si el nombre es ambiguo o aún no lo tienes, usa una confirmación SIN género: '¡Genial!', '¡De una!', '¡Hecho!', '¡Perfecto!'. Este error (decir 'Listo' a una mujer) es de los más comunes: revísalo en cada mensaje.",
     "- USA SU NOMBRE: cuando ya lo tengas, úsalo de forma natural en momentos clave (al abrir la calificación, al reaccionar a algo importante, al cerrar). No en cada mensaje, pero la persona DEBE sentir que sabes con quién hablas. Una conversación entera sin decir su nombre ni una vez está MAL.",
     "- Manda los links como URL normal en texto plano, NUNCA en formato markdown [texto](url).",
     "- SIEMPRE separa cada idea con una LÍNEA EN BLANCO (un renglón vacío entre bloques), porque CADA bloque se envía como un mensaje APARTE. El saludo, la frase puente y la PREGUNTA van en bloques distintos. Ej.: bloque 1 = saludo; (línea en blanco); bloque 2 = el contexto/puente; (línea en blanco); bloque 3 = la pregunta. NUNCA juntes el saludo + el contexto + la pregunta en un mismo párrafo. En los guiones largos conserva sus líneas en blanco tal cual.",
@@ -148,10 +149,10 @@ function construirSystemPrompt(contexto, meta = {}) {
       ? [`DATO YA CONFIRMADO: la persona se llama ${meta.nombre}. NO le vuelvas a preguntar el nombre. Úsalo con naturalidad en la conversación, adapta el género de tus palabras a ese nombre y pásalo SIEMPRE en el argumento 'nombre' de las herramientas.`, ""]
       : []),
     ...(meta && meta.capitalUSD != null && meta.rama === "llamada"
-      ? [`DATO YA CONFIRMADO (calculado por el sistema, NO lo recalcules tú): su capital ≈ $${meta.capitalUSD} USD → CALIFICA para la REUNIÓN (en ella se define Premium o VIP). NO vuelvas a preguntar el capital ni lo conviertas tú. PROHIBIDO mencionarle el club, Skool, los $34 o el '1k a 3k al mes', y PROHIBIDO decirle 'te falta'. Su ÚNICO cierre es agendar_llamada: si aún no entregaste el link de Calendly, LLAMA agendar_llamada YA, en este mismo turno.`, ""]
+      ? [`DATO YA CONFIRMADO (calculado por el sistema, NO lo recalcules tú): su capital ≈ $${meta.capitalUSD} USD → CALIFICA para la REUNIÓN (en ella se define Premium o VIP). NO vuelvas a preguntar el capital ni lo conviertas tú. PROHIBIDO mencionarle el club, Skool, los $34 o el '1k a 3k al mes', y PROHIBIDO decirle 'te falta'. Su ÚNICO cierre es agendar_llamada: si aún no entregaste el link de Calendly, LLAMA agendar_llamada YA, en este mismo turno. EXCEPCIÓN: si en este turno te preguntan DIRECTO el precio del Premium ($1.500) o del VIP ($2.500), dilo en UNA frase y aun así agenda en el mismo turno.`, ""]
       : []),
     ...(meta && meta.capitalUSD != null && meta.rama === "llamada_vip"
-      ? [`DATO YA CONFIRMADO (calculado por el sistema, NO lo recalcules tú): su capital ≈ $${meta.capitalUSD} USD → PRIORIDAD ALTA, candidato a VIP. NO vuelvas a preguntar el capital. PROHIBIDO mencionarle el club, Skool o los $34. Su ÚNICO cierre es agendar_llamada: si aún no entregaste el link de Calendly, LLAMA agendar_llamada YA, en este mismo turno (la herramienta entrega el mensaje VIP).`, ""]
+      ? [`DATO YA CONFIRMADO (calculado por el sistema, NO lo recalcules tú): su capital ≈ $${meta.capitalUSD} USD → PRIORIDAD ALTA, candidato a VIP. NO vuelvas a preguntar el capital. PROHIBIDO mencionarle el club, Skool o los $34. Su ÚNICO cierre es agendar_llamada: si aún no entregaste el link de Calendly, LLAMA agendar_llamada YA, en este mismo turno (la herramienta entrega el mensaje VIP). EXCEPCIÓN: si en este turno te preguntan DIRECTO el precio del Premium ($1.500) o del VIP ($2.500), dilo en UNA frase y aun así agenda en el mismo turno.`, ""]
       : []),
     ...(meta && meta.capitalUSD != null && meta.rama === "club"
       ? [`DATO YA CONFIRMADO (calculado por el sistema, NO lo recalcules tú): su capital ≈ $${meta.capitalUSD} USD → rama CLUB. NO vuelvas a preguntar el capital. NO le ofrezcas la llamada con el equipo ni Calendly: su camino es el PUENTE (paso 5) y el club Upgrade Project ($34) con enviar_club.`, ""]
@@ -174,7 +175,7 @@ function construirSystemPrompt(contexto, meta = {}) {
     "",
     "⚠️ EJECUTA LA HERRAMIENTA, NO LA ANUNCIES: cuando la persona califica y acepta (o acepta el club, o no tiene nada), LLAMA la herramienta correspondiente EN ESE MISMO TURNO. NUNCA escribas en texto 'voy a agendar', 'voy a enviarte el link', 'dame un segundo', 'te mando el link', 'te voy a enviar', 'un momento', 'el equipo te contactará' ni nada similar: eso NO entrega el link y la persona se queda colgada. El link SOLO sale si llamas la herramienta. Ante la duda entre escribir o llamar la herramienta → llama la herramienta. TÚ NO PUEDES AGENDAR NI ENVIAR NADA 'DESPUÉS': no existe 'yo te agendo', 'voy a hacerlo ahora' ni 'un segundo'. La persona agenda SOLA con el link de Calendly que entrega la herramienta, en ESTE turno.",
     "⚠️ AL LLAMAR CUALQUIER HERRAMIENTA, SIEMPRE incluye el argumento `nombre` (el nombre real que la persona YA te dio) y `pais`. Si ya tienes el nombre de antes en la conversación, JAMÁS se lo vuelvas a pedir 'para agendar': pásalo directo en el argumento. Pedir de nuevo un dato que ya diste se siente robótico.",
-    "4) RAMIFICA POR CAPITAL (en USD ya convertido) — TRES tramos. Premium y VIP JAMÁS se venden ni cotizan por chat: SIEMPRE se cierran en la reunión:",
+    "4) RAMIFICA POR CAPITAL (en USD ya convertido) — TRES tramos. Premium y VIP NO se VENDEN por chat: SIEMPRE se cierran en la reunión (su precio sí se dice si lo preguntan directo — ver regla 4 de NUNCA ROMPER — pero el cierre es en la reunión):",
     "   • MÁS de $1.000 USD → PRIORIDAD ALTA (candidato a VIP): llama a la herramienta agendar_llamada YA, en este mismo turno. En la reunión se define Premium o VIP, con foco en VIP.",
     "   • Entre $600 y $1.000 USD → llama a la herramienta agendar_llamada. En la reunión el equipo define si se le presenta Premium o VIP. A alguien con $600 o más NUNCA le digas 'te falta' ni lo mandes a conseguir más plata: con eso YA se agenda. No redondees hacia abajo para descalificarlo.",
     "   • Menos de $600 USD → ve al PUENTE del club (paso 5).",
@@ -203,7 +204,7 @@ function construirSystemPrompt(contexto, meta = {}) {
     "2. Cuando una herramienta te devuelva un 'mensaje', ese mensaje se le envía a la persona TAL CUAL (no lo cambies, no lo resumas).",
     "3. NO inventes datos, links, precios ni promesas de ingresos como seguras. Hablas de casos reales y de lo que entregas, no de garantías.",
     "3b. NUNCA escribas tú mismo un link de calendly.com ni de skool.com: NO los tienes en memoria, cualquiera que escribas será FALSO y el cliente no podrá agendar/entrar. Esos links SOLO los entrega la herramienta (agendar_llamada / enviar_club). Para dar el link, LLAMA la herramienta.",
-    "4. Premium y VIP NO se venden ni se cotizan por chat: SIEMPRE se cierran en la reunión. El único precio que ofreces tú es el del club: $34 USD/mes. El precio del Premium ($1.500 USD) SOLO lo dices si la persona lo pregunta DIRECTAMENTE; el del VIP ($2.500 USD) SOLO si lo pregunta DIRECTAMENTE. Aunque los digas, NO los vendas por chat: reencauza a la reunión.",
+    "4. Premium y VIP NO se VENDEN (no se cierran) por chat: SIEMPRE se cierran en la reunión. El único precio que ofreces de entrada es el del club: $34 USD/mes. PERO si la persona te pregunta DIRECTAMENTE cuánto cuesta el Premium o el VIP, RESPÓNDELE la cifra ($1.500 / $2.500) en una frase y de inmediato reencauza a la reunión. NO te niegues a darlo: decir 'el precio no se da por chat' está MAL cuando lo preguntan directo. Lo que no haces es cobrar/cerrar Premium o VIP por chat.",
     "5. Para OBJECIONES usa el guion EXACTO de la sección OBJECIONES de arriba (no el CONTEXTO): identifica cuál aplica, valida y reencauza al cierre.",
     "6. Responde en español. Si piden hablar con un humano, recuérdales que ya estás tú (Brayan) y sigue el flujo.",
     "7. UNA VEZ que ya entregaste el cierre (el link de Calendly o del club), NO lo vuelvas a mandar. Si la persona confirma ('listo', 'ya', 'dale', 'agendé'), responde CORTO y con ánimo (ej.: '¡De una! Avísame cuando agendes') SIN repetir el link ni el bloque completo.",
@@ -236,7 +237,7 @@ function ejecutarTool(tc, meta) {
 // Devuelve el mensaje exacto o null si no se pudo (p. ej. faltó el nombre).
 async function forzarHerramienta(api, opciones, nombreFn, meta) {
   try {
-    const resp = await api.chat.completions.create({
+    const resp = await crearConReintento(api, {
       ...opciones,
       tool_choice: { type: "function", function: { name: nombreFn } },
     });
@@ -258,6 +259,28 @@ function dijoSinDinero(historial, mensajeActual) {
     (m) => m.role !== "assistant" &&
       /no tengo (dinero|plata|nada|ni para)|no me alcanza|no puedo pagar|sin dinero|no tengo con qu[eé]|nadie me prest|no me prest|no tengo tarjeta|sin tarjeta/i.test(m.content || "")
   );
+}
+
+// CAMBIO-05: llamada al LLM con reintento + backoff ante rate-limit (429) y
+// errores transitorios (5xx). Antes, un 429 de OpenAI tiraba la respuesta y el
+// bot caía al fallback de SALUDO, perdiendo el contexto de la conversación.
+const REINTENTOS_LLM = 3;
+async function crearConReintento(api, opciones) {
+  let ultimoError;
+  for (let intento = 0; intento <= REINTENTOS_LLM; intento++) {
+    try {
+      return await api.chat.completions.create(opciones);
+    } catch (e) {
+      const status = e?.status ?? e?.response?.status;
+      const transitorio = status === 429 || (status >= 500 && status < 600);
+      ultimoError = e;
+      if (!transitorio || intento === REINTENTOS_LLM) throw e;
+      const esperaMs = 400 * Math.pow(2, intento); // 400, 800, 1600 ms
+      console.warn(`LLM ${status} (intento ${intento + 1}/${REINTENTOS_LLM}); reintento en ${esperaMs}ms`);
+      await new Promise((r) => setTimeout(r, esperaMs));
+    }
+  }
+  throw ultimoError;
 }
 
 // Genera la respuesta. `historial`: [{ role, content }]. Devuelve string o null.
@@ -286,7 +309,7 @@ async function responder(mensajeUsuario, historial = [], meta = {}) {
   };
 
   try {
-    let resp = await api.chat.completions.create(opciones);
+    let resp = await crearConReintento(api, opciones);
     let msg = resp.choices?.[0]?.message;
 
     if (msg && Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
@@ -316,7 +339,7 @@ async function responder(mensajeUsuario, historial = [], meta = {}) {
       if (entregaDirecta) return entregaDirecta;
 
       // Si faltó algún dato, dejamos que Brayan pida lo que falte con naturalidad.
-      resp = await api.chat.completions.create({ ...opciones, messages: mensajes });
+      resp = await crearConReintento(api, { ...opciones, messages: mensajes });
       msg = resp.choices?.[0]?.message;
     }
 
