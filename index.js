@@ -92,6 +92,13 @@ const SALUDOS = [
 const PALABRAS_RESULTADOS = [
   "testimonio", "testimonios", "resultado", "resultados", "prueba", "pruebas",
   "caso", "casos", "estudiantes", "funciona de verdad", "es real",
+  // Duda de legitimidad ("¿es estafa / es confiable?"): es la objeción 11.
+  // Va aquí para responderla con casos + Instagram de forma determinística,
+  // en CUALQUIER rama y AUN después del cierre (si no, en rama llamada el bot
+  // re-cerraba con Calendly y la objeción quedaba sin responder, CAMBIO-11).
+  "estafa", "estafan", "fraude", "es confiable", "es legitimo", "es legítimo",
+  "es legal", "no sera real", "será real", "sera real", "es verdad esto",
+  "es de verdad", "es seguro esto",
 ];
 
 // Señales de OBJECIÓN de garantía: aunque mencionen "resultados", NO es un
